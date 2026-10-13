@@ -1,0 +1,12 @@
+# tools/package.py: setup.exe (Windows) and .deb (Linux) of paint
+display=Paint
+version=0.1.0
+publisher=jfguiLib
+summary=Malprogramm im Stil von Microsoft Paint
+description=Ein Nachbau von Microsoft Paint im WinUI-3-Stil: Stifte, Pinsel, Formen, Text, Auswahl und Ebenen, geschrieben in Rust ohne Laufzeitbibliotheken.
+generic=Malprogramm
+categories=Graphics;2DGraphics;RasterGraphics;
+deb_name=paint
+default_win=winui
+default_linux=kde
+styles=winui classic macos kde

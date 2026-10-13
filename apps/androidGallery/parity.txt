@@ -1,0 +1,2 @@
+matrix off
+rsonly tests/basic.uis New Android gallery without an assembly reference.

@@ -1,0 +1,36 @@
+# basic interaction test for the widget gallery
+expect "Option A" checked
+click "Option A"
+expect "Option A" unchecked
+click "Rot"
+expect "Rot" checked
+expect "Grün" unchecked
+expect "WLAN" checked
+click "WLAN"
+expect "WLAN" unchecked
+click "Standard"
+click "Akzent"
+expect text:"Wert: 40 %   Klicks: 2" exists
+click "Umschalten"
+expect "Umschalten" checked
+click #162
+expect #162 checked
+expect #161 unchecked
+# keyboard: Tab moves the focus on from the clicked tool, Space activates
+key tab
+expect #163 focused
+key shift+tab shift+tab
+expect #161 focused
+key space
+expect #161 checked
+click "Standard"
+expect "Standard" focused
+key enter
+expect text:"Wert: 40 %   Klicks: 4" exists
+# slider via keyboard and drag
+click #140
+key right right right
+expect #140 value 53
+drag #140 400,400
+expect "Deaktiviert" disabled
+shot build/gal_script.png

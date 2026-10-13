@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "builds": [
+    {
+      "name": "Paint – Entwicklung",
+      "apps": [
+        "paint"
+      ],
+      "targets": [
+        "win",
+        "linux"
+      ],
+      "styles": [],
+      "mode": "development",
+      "optimization": "size",
+      "jobs": 4,
+      "tests": false,
+      "output": "build/manager"
+    },
+    {
+      "name": "Paint – Release WinUI",
+      "apps": [
+        "paint"
+      ],
+      "targets": [
+        "win",
+        "linux"
+      ],
+      "styles": [
+        "winui"
+      ],
+      "mode": "release",
+      "optimization": "size",
+      "jobs": 4,
+      "tests": true,
+      "output": "build/manager"
+    }
+  ],
+  "starts": [
+    {
+      "name": "Standard",
+      "app": "paint",
+      "argv": []
+    },
+    {
+      "name": "Dunkel · 150 %",
+      "app": "paint",
+      "argv": [
+        "--theme",
+        "dark",
+        "--scale",
+        "150"
+      ]
+    },
+    {
+      "name": "Dunkel · 150 %",
+      "app": "template",
+      "argv": [
+        "--theme",
+        "dark",
+        "--scale",
+        "150"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+# parity of the Rust plattest with the assembly version (tools/parity.py, build_rs.py test)
+matrix off                      # no UI: the shot / dump matrix does not apply
+stdout checks                   # compare PASS / FAIL lines and the summary; lines starting with
+                                # two blanks are details (times, paths, counts) and differ by run
+rsonly guard.uis   # Rust build only (was apps/plattest/tests)
+rsonly guardlimit.uis   # Rust build only (was apps/plattest/tests)
+rsonly print.uis   # Rust build only (was apps/plattest/tests)
+rsonly cliprich.uis # Rich clipboard API and CF_HTML framing have no assembly counterpart.

@@ -1,0 +1,12 @@
+rust-project.json
+/__pycache__
+/build
+/apps/jfword/context
+/apps/jfword/books
+/apps/BackupCraft/context
+/tools/paintcraft-pdn-host/obj
+*.pyc
+*.csproj
+*.props
+*.log
+rust-project.json

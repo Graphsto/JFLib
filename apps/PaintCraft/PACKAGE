@@ -1,0 +1,12 @@
+# tools/package.py: setup.exe (Windows) and .deb (Linux) of PaintCraft
+display=PaintCraft
+version=0.1.0
+publisher=JFLib
+summary=Bildbearbeitung im Stil von paint.net
+description=Bildbearbeitung mit Ebenen, Effekten, PSD-Rasterebenen, dynamischen Bildpinseln und vielen Bildformaten, geschrieben in Rust mit JFLib.
+generic=Bildbearbeitung
+categories=Graphics;2DGraphics;RasterGraphics;
+deb_name=PaintCraft
+default_win=winui
+default_linux=kde
+styles=winui classic macos kde

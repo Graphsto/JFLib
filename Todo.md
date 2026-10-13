@@ -3,7 +3,7 @@
 3. Native Multilanguage System
 4. Permmision handling
 5. Hooks (no Events)
-6. Other Linux Installer then .deb
+6. Other Linux Installer then .deb and .appimage
 7. Microsoft Store Image builder
 8. Google Play Store Image builder
 9. Flatpak Image builder

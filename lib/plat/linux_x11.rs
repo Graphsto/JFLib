@@ -203,7 +203,7 @@ const A_TEXT: usize = 22;
 const A_TEXT_PLAIN_UTF8: usize = 23;
 const A_TEXT_PLAIN: usize = 24;
 const A_IMAGE_PNG: usize = 25;
-const A_jfgui_SEL: usize = 26;
+const A_JFGUI_SEL: usize = 26;
 const A_NET_WM_ICON_NAME: usize = 27;
 const A_COUNT: usize = 28;
 

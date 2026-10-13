@@ -2,6 +2,8 @@
 
 **A GUI library in Rust, with its own renderer, interchangeable styles, and apps built on top.**
 
+The library is designed to be used by AI Agents, not by Humans – Thus the entire Codebase is optimized for hardware efficiency.
+
 JFLIB brings widgets, layout, text, 2D graphics, image formats, and platform integration
 together in one library. This repository contains both the library and its applications:
 from small GUI examples to Paint, PaintCraft, jfWord, and the Build Manager.
@@ -59,7 +61,7 @@ The following table describes the build paths available in the current repositor
 | **Android** | Native APK, `--target android` | `androidGallery`, ARM64 and x86-64 emulator; Android 8 / API 26 or later |
 | **macOS** | Browser output through `--target web` | Access through the web port; the current build script has no native Apple target |
 | **iOS** | Browser output through `--target web` | Access through the web port; the current build script has no native iOS app/IPA target |
-| **Web** | WebAssembly and a shared browser host, `--target web` | Includes `template`, `gallery`, `paint`, `PaintJF`, and `jfWord` |
+| **Web** | WebAssembly and a shared browser host, `--target web` | Includes `template`, `gallery`, `paint`, `PaintCraft`, and `jfWord` |
 
 The documented browser test matrix covers Chromium and Firefox. Separate Safari/iOS
 validation has not yet been documented here. The `macos` style is independent of the
@@ -89,14 +91,14 @@ jfWord is under active development; full Word feature coverage and file compatib
 are not yet complete. Native plugins and operating-system services are more limited
 in the browser than on the desktop.
 
-PaintJF now imports PSD/PSB raster layers, exports layered 8-bit PSD, offers
+PaintCraft now imports PSD/PSB raster layers, exports layered 8-bit PSD, offers
 bitmap brush tips and dynamics, and connects to standalone G'MIC-Qt on Windows
 and Linux. Its text tool supports OpenType shaping, bidirectional text and basic
 IME composition display; English and French UI catalogs are available with German
 fallback for untranslated strings. High-depth imports are converted to its 8-bit
 SDR canvas. The [handbook comparison](apps/PaintCraft/docs/MANUAL_PARITY.md) lists
 tested behavior and the remaining Photoshop, HDR and plugin limitations.
-The optional classic Paint.NET DLL host now also connects to native Linux PaintJF
+The optional classic Paint.NET DLL host now also connects to native Linux PaintCraft
 through Wine. Brush Factory / Dynamic Draw JSON and legacy XML presets can be
 imported for supported controls, with unsupported active parameters reported explicitly.
 See the [Wine setup](tools/paintcraft-pdn-host/README.md#linuxwine-setup) and
@@ -300,7 +302,7 @@ Windows installers require a Windows host; Debian packages require `dpkg-deb`
 (through WSL on Windows). Output defaults to `build/manager/`, and profiles are saved
 in `build-profiles.json`.
 
-To build a package directly from the terminal, for example for PaintJF:
+To build a package directly from the terminal, for example forCraft:
 
 ```sh
 python tools/package.py PaintCraft --styles winui,classic --no-deb
@@ -483,7 +485,7 @@ python build_rs.py test --quick --target win
 ```
 
 `check` validates the source-code rules. `test --quick` starts the broader test suite
-and skips the historical assembly parity checks. Some existing PaintJF tests still
+and skips the historical assembly parity checks. Some existing PaintCraft tests still
 expect reference plugins under `build/rwref`, which are not included in a fresh checkout.
 The full parity run also requires the separate assembly reference.
 For rust-analyzer, `python build_rs.py ide` generates `rust-project.json`.
@@ -499,7 +501,7 @@ For rust-analyzer, `python build_rs.py ide` generates `rust-project.json`.
 | [Packaging](docs/PACKAGING.md) | Windows installers, Debian packages, icons, and package metadata |
 | [Android Gallery](apps/androidGallery/README.md) | APKs, Android prerequisites, input, and port status |
 | [Web and agent control](docs/AGENT_WEB.md) | Browser host and explicit CLI/JSON/MCP interfaces |
-| [PaintJF plugins](plugins/README.md) | Native plugins and plugin builds |
+| [PaintCraft plugins](plugins/README.md) | Native plugins and plugin builds |
 | [jfWord](apps/jfWord/README.md) | Document editing and current feature coverage |
 | [BackupJF](apps/BackupCraft/README.md) | Server, agents, console and bcctl: setup, architecture, security model, tests |
 

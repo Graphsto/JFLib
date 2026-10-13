@@ -142,3 +142,30 @@ JSON-/MCP-Prozesse, komplexe Feldimporte und Paketerhalt zusätzlich über unabh
 ZIP/XML. `formulas.uis` bedient Dialog, Syntaxfehler, Berechnungsfehler und F9. Der
 Browsertest tippt in Dialog und Papierseite und prüft schwebende Fortsetzungen,
 Tabellenkopien sowie bestätigtes dauerhaftes Speichern und Neuladen.
+
+## Abnahme vom 14. Oktober 2026
+
+Der abschließend neu gebaute Stand mit dem öffentlichen Namen `jfgui` liegt unter
+`build/wordcraft-table-formulas`. Die [Umbenennungsprüfung](../../../docs/JFGUI_RENAME.md)
+und der Formelausbau verwenden dieselben auslieferbaren Binaries und Browserbundles.
+
+- Windows und Linux: jeweils 10.652 Kernprüfungen, keine Fehler; der vollständige
+  jfWord-Satz besteht mit 1.057 nativen Prozessprüfungen und 53 UI-Skripten je Plattform.
+- 32 JSON-/MCP-Szenarien für Formeln und die vorhandenen Tabellen-/Notenfunktionen;
+  zusätzlich je vier reale CLI- und Grafik-Agentenszenarien auf beiden Plattformen.
+- 18 Featurefälle in Chromium/Firefox bei 100/150/200 Prozent, darunter Eingabe im
+  Formeldialog, Live-Abhängigkeiten, verschachtelte Tabellen, Zwischenablage,
+  schwebende Fortsetzungen und dauerhafte Speicherung mit erneutem Laden.
+- 36 bytegleiche DOCX-Übertragungen aus dem Browser in Windows und Linux, einschließlich
+  Formeln, Zellnoten und verschachtelten Tabellen.
+- Die Formeldialoge sind für Windows/Linux bei hell/100 Prozent und dunkel/150 Prozent
+  bytegleiche PNGs. 200 Prozent und kleinere Fenster werden im UI-Verhalten geprüft.
+- Gemeinsamer Projekt-Gesamtlauf: 363/363 Skripte; Build-Manager/Quellresolver einschließlich
+  WSL-Abbruch: 17/17 Tests. Alle registrierten Windows-/Linux-/Web-Builds bestehen.
+  Lint und die API-Dokumentation mit 5.099 Einträgen sind aktuell.
+
+Die Messwerte, Logpfade, SHA-256-Manifest und Bilder stehen in `verification.json`,
+`rename-verification.json`, `manifest.json` und `native-formula-images.json` im Build-Ordner.
+Die Feature-Browserfälle führen skalare und SIMD-Binaries aus. Der gemeinsame
+Shared-Memory-Workerbetrieb wird zusätzlich mit der portablen Rechenprobe und PaintCraft
+in beiden Browsern ausgeführt; er ersetzt keine gesonderte Formelfallmatrix für Threads.

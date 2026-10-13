@@ -99,6 +99,8 @@ click #65548
 key ctrl+a
 type "../apps/PaintCraft/tests/fixtures/p1_plugin.qoi"
 click button:"Öffnen"
+# Interactive opening uses a background decode; synchronize before inspecting its result.
+sync
 expect #9901 value 2
 expect tab:"p1_plugin.qoi" selected
 expect #9911 value 14

@@ -41,10 +41,15 @@ def main():
             result = subprocess.run([str(exe), *args], cwd=workspace, timeout=timeout,
                                     capture_output=True, text=True, encoding='utf-8',
                                     errors='replace', creationflags=subprocess.CREATE_NO_WINDOW)
-        if result.returncode == 0 and 'apps/jfWord/tests/exact_rows.uis' in args:
-            for suffix in ['light', 'dark-150']:
-                shutil.copyfile(workspace / f'build/jfword-exact-rows-dialog-{suffix}.png',
-                                output / f'native-{target}-dialog-{suffix}.png')
+        if result.returncode == 0:
+            for script, source, destination in [
+                ('exact_rows', 'jfword-exact-rows-dialog', 'dialog'),
+                ('formulas', 'jfword-formula-dialog', 'formula-dialog'),
+            ]:
+                if f'apps/jfWord/tests/{script}.uis' in args:
+                    for suffix in ['light', 'dark-150']:
+                        shutil.copyfile(workspace / f'build/{source}-{suffix}.png',
+                                        output / f'native-{target}-{destination}-{suffix}.png')
         return result
 
     previous_runner = build_rs.run_exe

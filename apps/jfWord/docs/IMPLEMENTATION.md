@@ -1,6 +1,6 @@
 # Umsetzung und Abnahme: jfOffice, Agenten und Browser
 
-Stand: 13. Oktober 2026. Der [Featurekatalog](../FEATURES.md) und der vereinbarte gemeinsame
+Stand: 14. Oktober 2026. Der [Featurekatalog](../FEATURES.md) und der vereinbarte gemeinsame
 Plan bleiben das Produktziel. Diese Übersicht beschreibt die tatsächlich umgesetzte
 Etappe und ihre Nachweise. Sie ersetzt keine vollständige Word-Konformitätsprüfung.
 
@@ -10,6 +10,11 @@ Abhängigkeiten und Zahlenformate. Einfügen, Bearbeiten, DOCX und strukturierte
 Zwischenablage verwenden denselben Code nativ und in WASM. Builds unter
 `build/wordcraft-table-formulas`; die [Zellnoten](TABLE_CELL_NOTES.md) bleiben integriert.
 
+Die [Umbenennung zu jfgui](../../../docs/JFGUI_RENAME.md) ist für die aktiven native-/Web-
+Schnittstellen nachgeprüft. Der gemeinsame Browserhost übernimmt vorhandene Dateien aus
+der alten Datenbank, ohne neue Konfliktdateien zu überschreiben. Die CLI heißt jetzt
+`tools/jfgui-agent.py` und verwendet die aktuellen MCP-Werkzeugnamen.
+
 ## Etappen
 
 | Planbereich | Vorhandener Stand | Weitere Arbeit |
@@ -18,7 +23,7 @@ Zwischenablage verwenden denselben Code nativ und in WASM. Builds unter
 | Gemeinsame Verträge | Aktionsregistrierung, strikter JSON-Kern, Schemas, Revisionen, strukturierte Fehler, Aufgaben, Ressourcen, Plattformfähigkeiten und schrittweise Runtime | Jede zusätzliche Fachaktion muss ihre eigenen Fähigkeiten und Transaktionsgrenzen angeben |
 | Native Agentensteuerung | Opt-in, stdio-JSON/MCP, lokale benutzergebundene IPC, allgemeine Widget-/Fenstersteuerung, CLI und fachliche Adapter für jfWord sowie Grafikfunktionen | Nicht jeder historische GUI-Befehl ist schon als eigene Fachaktion registriert; jfWord bietet noch keine atomare externe Dokumenttransaktion |
 | jfOffice und Schreibkern | Eigener blauer Style, integrierter Fensterkopf, alle elf Register, gruppiertes Menüband, direkte vorhandene Rich-Text-Bearbeitung, gemeinsame Dokumentdarstellung, echte Vorschaubilder, Navigation, Fokus, Zoom, Schriftfamilien, vererbbare Absatzvorlagen, interaktive Lineale und individuelle Tabstopps | Komplexe Schriften und weitere Office-Werkzeuge siehe unten |
-| Browserport | Direkter WASM-Build für alle fünf GUI-Apps, gemeinsamer Worker/Canvas-Host, portable Kernpfade, virtuelle Dateien, asynchrone Dienste, aktivierbarer JSON-/MessagePort-Zugang und optionale lokale Bridge | Betriebssystem-IME, vollständige Fontabdeckung und zusätzliche Browserdienste |
+| Browserport | Direkter WASM-Build für registrierte GUI-Apps, gemeinsamer Worker/Canvas-Host, portable Kernpfade, virtuelle Dateien, asynchrone Dienste, aktivierbarer JSON-/MessagePort-Zugang und optionale lokale Bridge | Betriebssystem-IME, vollständige Fontabdeckung und zusätzliche Browserdienste |
 | Gesamtabnahme | Native Gesamtprüfung, Referenzparität, Chromium-/Firefox-Abläufe und portable Vergleichskorpora bestanden; bestehende Formatprüfungen bleiben erhalten | Alle Office-Funktionen, umfassende Browserdienstprüfung und echte Word-Referenzprüfung |
 
 Die Dokumentbibliotheken bleiben `no_std` mit `core`/`alloc`; der gemeinsame Build
@@ -204,7 +209,7 @@ Die [Fortsetzung mit verbundenen Zellen und Tabellenbreiten](MERGED_TABLES.md) e
 ausschließlich in JFLib. Sie ergänzt gemeinsame Rasteroperationen, Seitenfortsetzungen,
 DOCX-Verbindungen, passende RTF-/HTML-Ausgabe und Schriftmessung für die Breitenanpassung.
 Quellenzitate bleiben bei Teilen und erneutem Verbinden strukturierte Felder.
-jfguituellen Builds und Prüfprotokolle liegen unter `build/wordcraft-merged`;
+Die damaligen Builds und Prüfprotokolle liegen unter `build/wordcraft-merged`;
 ASMGUILib wird als Referenz gelesen und nicht weiter verändert.
 
 Die [Etappe mit wiederholten Tabellenkopfzeilen und Tabellenformatvorlagen](TABLE_HEADERS_AND_STYLES.md)

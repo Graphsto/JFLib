@@ -391,7 +391,7 @@ impl X11 {
     pub(super) fn clip_property(&mut self, b: &[u8]) {
         let (win, atom, state) = (rd32(b, 4), rd32(b, 8), b[16]);
         if win == self.xw[0].win {
-            if atom == self.atoms[A_jfgui_SEL] && state == 0 {
+            if atom == self.atoms[A_JFGUI_SEL] && state == 0 {
                 self.cb_newval = true;
             }
             return;
@@ -473,7 +473,7 @@ impl X11 {
     fn clip_convert(&mut self, target: u32) -> Result<Vec<u8>, i32> {
         let limit = if self.cb_rich_atoms.contains(&target) { crate::CLIP_RICH_MAX } else { CLIP_MAX };
         self.rb = Vec::new();
-        let (win0, sel, prop, t) = (self.xw[0].win, self.cb_sel, self.atoms[A_jfgui_SEL], self.time);
+        let (win0, sel, prop, t) = (self.xw[0].win, self.cb_sel, self.atoms[A_JFGUI_SEL], self.time);
         let (o, _) = self.req(XR_DELETE_PROPERTY, 12);
         wr32(&mut self.out, o, win0);
         wr32(&mut self.out, o + 4, prop);
@@ -534,7 +534,7 @@ impl X11 {
     fn prop_read(&mut self, limit: usize) -> u32 {
         let mut off = 0u32; // offset in 4-byte units
         loop {
-            let (win0, prop) = (self.xw[0].win, self.atoms[A_jfgui_SEL]);
+            let (win0, prop) = (self.xw[0].win, self.atoms[A_JFGUI_SEL]);
             let Some(r) = self.get_property(win0, prop, 0, off, X11_PROP_CHUNK, true) else { return u32::MAX };
             let typ = rd32(&r, 8);
             if typ == 0 {

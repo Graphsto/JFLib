@@ -9,4 +9,5 @@ rust-project.json
 *.csproj
 *.props
 *.log
+.env
 rust-project.json

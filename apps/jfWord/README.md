@@ -8,7 +8,10 @@ Formeln. Gemeinsame Bibliotheken für Windows, Linux und WASM; Builds unter
 `build/wordcraft-table-formulas`.
 Die vorherigen [Zellnoten](docs/TABLE_CELL_NOTES.md), [exakten Zeilenhöhen](docs/EXACT_TABLE_ROW_HEIGHTS.md)
 und [mehrseitigen schwebenden Tabellen](docs/FLOATING_TABLE_PAGES_AND_HTML.md) bleiben integriert.
-jfguiLib ist unveränderte Referenz.
+Das frühere ASMGUILib-Repository wird ausschließlich als Referenz gelesen.
+
+Die [Prüfung der Umbenennung zu jfgui](../../docs/JFGUI_RENAME.md) dokumentiert die
+aktuellen CLI-/MCP-/WASM-Namen und die automatische Übernahme vorhandener Browserdateien.
 
 Stand: 13. Oktober 2026. Der [Featurekatalog](FEATURES.md) bleibt das vollständige
 Produktziel. Dieser Stand setzt einen ersten Teil von **P1 (Grundlagen)** und eine

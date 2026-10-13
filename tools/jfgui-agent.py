@@ -3,7 +3,7 @@
 
 Only Python's standard library is used. Applications execute all semantic actions through
 the shared Rust dispatcher; this program implements discovery, framing and CLI arguments.
-It never evaluates shell text. Run `python tools/jfgui-agent.py --help` from RustLib.
+It never evaluates shell text. Run `python tools/jfgui-agent.py --help` from JFLib.
 """
 
 from __future__ import annotations
@@ -338,7 +338,12 @@ def main() -> int:
             raise ValueError("The app path must name an executable file")
         extra = extra_args[1:]
         # Argument arrays only; no shell/interpreter command string is evaluated.
-        return subprocess.call([str(app), "--agent-" + args.protocol, *extra], creationflags=0x08000000 if os.name == "nt" else 0)
+        # Explicitly inherit all three handles. With CREATE_NO_WINDOW on Windows,
+        # implicit inheritance loses redirected standard streams at this second hop.
+        return subprocess.call([str(app), "--agent-" + args.protocol, *extra],
+                               stdin=sys.stdin.buffer, stdout=sys.stdout.buffer,
+                               stderr=sys.stderr.buffer,
+                               creationflags=0x08000000 if os.name == "nt" else 0)
     with Connection(args.endpoint, args.timeout) as connection:
         if args.command == "stdio":
             # Protocol-preserving bridge; the first explicit MCP version envelope selects

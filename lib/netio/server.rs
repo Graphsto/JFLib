@@ -127,9 +127,36 @@ fn worker(rx: Queue, cfg: ServerConfig, handler: Handler, wrap: Option<Wrap>, st
     }
 }
 
-fn error(s: &dyn Stream, status: u16) {
+/// how long and how much a connection ended by an error answer still reads (see linger)
+const LINGER_MS: u64 = 2000;
+const LINGER_BYTES: usize = 1 << 20;
+
+/// answer an error and end the connection
+fn error(s: &dyn Stream, status: u16, stop: &AtomicBool) {
     let mut r = Response::text(status, http::reason(status));
-    http::write_response(s, &mut r, false, false);
+    if http::write_response(s, &mut r, false, false) {
+        linger(s, stop);
+    }
+}
+
+/// end a connection whose request was not read to its end: send the end, then read and drop
+/// what the client still sends until it closes (at most LINGER_MS / LINGER_BYTES).  Closing a
+/// socket with unread bytes sends a reset, and a reset destroys the answer the client has not
+/// read yet (Windows drops its received bytes).
+fn linger(s: &dyn Stream, stop: &AtomicBool) {
+    s.shutdown();
+    s.set_timeouts(Some(250), Some(250));
+    let end = plat::time_us() + LINGER_MS * 1000;
+    let mut buf = alloc::vec![0u8; 16 * 1024];
+    let mut left = LINGER_BYTES;
+    while left > 0 && !stop.load(Ordering::Relaxed) && plat::time_us() < end {
+        if s.wait_readable(250) {
+            match s.read(&mut buf) {
+                Ok(n) if n > 0 => left = left.saturating_sub(n),
+                _ => return,
+            }
+        }
+    }
 }
 
 /// serve the requests of one connection
@@ -158,31 +185,31 @@ fn serve(s: &dyn Stream, peer: SocketAddr, id: Option<String>, cfg: &ServerConfi
         let (start, headers) = match rd.head() {
             Ok(x) => x,
             Err(ReadError::Closed) | Err(ReadError::Net(_)) => return,
-            Err(ReadError::HeadTooLarge) => return error(s, 431),
-            Err(_) => return error(s, 400),
+            Err(ReadError::HeadTooLarge) => return error(s, 431, stop),
+            Err(_) => return error(s, 400, stop),
         };
         let mut parts = start.split(' ');
         let (Some(method), Some(target), Some(version), None) = (parts.next(), parts.next(), parts.next(), parts.next()) else {
-            return error(s, 400);
+            return error(s, 400, stop);
         };
         let http11 = match version {
             "HTTP/1.1" => true,
             "HTTP/1.0" => false,
-            _ => return error(s, 505),
+            _ => return error(s, 505, stop),
         };
         if method.is_empty() || !method.bytes().all(|b| b.is_ascii_uppercase()) || !(target.starts_with('/') || target == "*") {
-            return error(s, 400);
+            return error(s, 400, stop);
         }
         if target.len() > 8 * 1024 {
-            return error(s, 414);
+            return error(s, 414, stop);
         }
         if headers.get("transfer-encoding").is_some() && headers.get("content-length").is_some() {
-            return error(s, 400);
+            return error(s, 400, stop);
         }
         let keep = if http11 { !headers.has_token("connection", "close") } else { headers.has_token("connection", "keep-alive") };
         if headers.has_token("expect", "100-continue") {
             if headers.get("content-length").and_then(|v| v.trim().parse::<usize>().ok()).is_some_and(|n| n > cfg.max_body) {
-                return error(s, 413);
+                return error(s, 413, stop);
             }
             if s.write_all(b"HTTP/1.1 100 Continue\r\n\r\n").is_err() {
                 return;
@@ -190,9 +217,9 @@ fn serve(s: &dyn Stream, peer: SocketAddr, id: Option<String>, cfg: &ServerConfi
         }
         let body = match rd.body(&headers, cfg.max_body, false) {
             Ok(b) => b,
-            Err(ReadError::BodyTooLarge) => return error(s, 413),
+            Err(ReadError::BodyTooLarge) => return error(s, 413, stop),
             Err(ReadError::Net(_)) | Err(ReadError::Closed) => return,
-            Err(_) => return error(s, 400),
+            Err(_) => return error(s, 400, stop),
         };
         let req = Request { method: String::from(method), target: String::from(target), headers, body, peer: Some(peer), client_id: id.clone() };
         let mut resp = handler(&req);

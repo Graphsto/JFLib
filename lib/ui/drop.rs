@@ -78,6 +78,7 @@ impl Ui {
         } else {
             plat::drop_take()
         };
+        super::perm::grant_all(&list); // the user dropped them (fs.user)
         self.drop_install(list, ev.win as u32, ev.x, ev.y);
     }
 

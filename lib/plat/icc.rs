@@ -131,7 +131,7 @@ mod os {
         if p.is_empty() {
             return None;
         }
-        let data = crate::read_file(&p)?;
+        let data = crate::read_file_raw(&p)?;
         if super::icc_ok(&data) { Some(data) } else { None }
     }
 }

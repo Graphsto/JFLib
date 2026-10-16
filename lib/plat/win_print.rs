@@ -258,6 +258,9 @@ fn wp_dlg_free(pdx: &mut [u8]) {
 /// print one image on one page (see the file header)  [plat_print]
 pub fn print(job: &mut PrintJob) -> i32 {
     job.copies = 0;
+    if !crate::policy::print_allowed() {
+        return ERR_UNSUPPORTED;
+    }
     let src = match job.src {
         Some(s) if !s.px.is_empty() && s.w > 0 && s.h > 0 => s,
         _ => return ERR_DIMS,

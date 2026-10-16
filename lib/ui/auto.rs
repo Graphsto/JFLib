@@ -366,7 +366,7 @@ impl Ui {
         }
         match path {
             Some(p) => {
-                plat::write_file(&String::from_utf8_lossy(p), &out);
+                super::perm::trusted(|| plat::write_file(&String::from_utf8_lossy(p), &out));
             }
             None => plat::write_stdout(&out),
         }
@@ -468,7 +468,7 @@ impl Ui {
 
     /// ui_script_run(path) -> exit code
     pub(crate) fn script_run(&mut self, app: &mut dyn App, path: &str) -> i32 {
-        let Some(data) = plat::read_file(path) else {
+        let Some(data) = super::perm::trusted(|| plat::read_file(path)) else {
             plat::write_stderr(alloc::format!("error: cannot read script {}\n", path).as_bytes());
             return 2;
         };
@@ -1678,7 +1678,7 @@ impl Ui {
                 let item = Ui::k1_word(rest, 16).and_then(|(kind, next)| {
                     let fmt = match kind.as_slice() { b"text" => CLIP_TEXT, b"html" => CLIP_HTML, b"rtf" => CLIP_RTF, b"docx" => CLIP_DOCX, _ => return None };
                     let (file, next) = Ui::k1_word(next, 1040)?;
-                    Some((fmt, plat::read_file(&String::from_utf8_lossy(&file))?, next))
+                    Some((fmt, super::perm::trusted(|| plat::read_file(&String::from_utf8_lossy(&file)))?, next))
                 });
                 match item {
                     Some((fmt, data, next)) => { entries.push((fmt, data)); rest = next; }
@@ -1692,7 +1692,7 @@ impl Ui {
         } else if verb == b"utf8" {
             // Opt-in file payloads exercise exact clipboard bytes, including CR and large
             // text, without the script parser's line-ending removal/string-length limit.
-            match Ui::k1_word(r, 1040).and_then(|(name, _)| plat::read_file(&String::from_utf8_lossy(&name))) {
+            match Ui::k1_word(r, 1040).and_then(|(name, _)| super::perm::trusted(|| plat::read_file(&String::from_utf8_lossy(&name)))) {
                 Some(data) if data.len() <= 4 << 20 && core::str::from_utf8(&data).is_ok() => { self.clip_set(CLIP_TEXT, &data); }
                 _ => self.fail(b"clip utf8 requires a readable UTF-8 file of at most 4 MiB"),
             }
@@ -1708,7 +1708,7 @@ impl Ui {
                 None => self.fail(BAD),
                 Some((f, _)) => {
                     let name = String::from_utf8_lossy(&f).into_owned();
-                    match plat::read_file(&name) {
+                    match super::perm::trusted(|| plat::read_file(&name)) {
                         None => {
                             let mut d = b"cannot read ".to_vec();
                             d.extend_from_slice(&f);
@@ -1750,7 +1750,7 @@ impl Ui {
                     };
                     match data {
                         Some(d) => {
-                            plat::write_file(&name, &d);
+                            super::perm::trusted(|| plat::write_file(&name, &d));
                         }
                         None => self.fail(b"the clipboard holds no image"),
                     }

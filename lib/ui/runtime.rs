@@ -434,10 +434,11 @@ impl Ui {
         plat::Frame { px: &sf.px, w: sf.w, h: sf.h, stride: sf.stride }
     }
 
-    /// png_save(path, sf): write a surface as a PNG file -> written
+    /// png_save(path, sf): write a surface as a PNG file -> written (--shot and the scripts'
+    /// shots: trusted, outside the app's permissions)
     pub(crate) fn save_png(sf: &Surface, path: &str) -> bool {
         let png = img_png::encode(&sf.px, sf.w as usize, sf.h as usize, sf.stride as usize, false);
-        plat::write_file(path, &png)
+        super::perm::trusted(|| plat::write_file(path, &png))
     }
 
     // call_cmd(id, arg) -> App::command

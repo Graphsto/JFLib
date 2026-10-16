@@ -31,6 +31,10 @@
 //                                          10 s (not in "all")
 //   plattest --test window                 (Rust only, t_window.rs, Windows) a real-window smoke
 //                                          test of the platform layer; the window closes itself
+//   plattest --test policy                 (t_policy.rs) the app's permissions: path rules,
+//                                          patterns, then a manifest installed in this
+//                                          process (files, grants, processes, URLs, plugins,
+//                                          print, capabilities, denials; not in "all")
 //   plattest --test all                    threads, files, ini, cpu
 //   --repeat N                             run the selected tests N times (only failures are
 //                                          printed then) -- a stress loop for races
@@ -66,6 +70,7 @@ mod t_window;
 mod t_guard;
 mod t_icc;
 mod t_lib;
+mod t_policy;
 mod t_portal;
 mod t_print;
 
@@ -193,6 +198,7 @@ fn plattest() -> i32 {
         Some("portal") => t_portal::t_portal,          // plat-shared
         Some("icc") => t_icc::t_icc,                   // plat-shared
         Some("iccx11") => t_icc::t_iccx11,             // plat-shared
+        Some("policy") => t_policy::t_policy,          // permissions (not in "all": it stays installed)
         _ => {
             plat::write_stderr(b"usage: plattest --test threads|files|ini|cpu|pen|cursor|all [--repeat N]\n");
             return 2;

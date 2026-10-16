@@ -62,8 +62,9 @@ impl Capabilities {
     }
 }
 
-/// Current native service set. Browser permissions are supplied by its host adapter.
+/// Current native service set, less what the app's permissions leave out (policy.rs).
+/// Browser permissions are supplied by its host adapter.
 #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
 pub fn capabilities() -> Capabilities {
-    Capabilities { available: (1 << 13) - 1 }
+    Capabilities { available: ((1 << 13) - 1) & crate::policy::cap_mask() }
 }

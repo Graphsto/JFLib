@@ -267,7 +267,7 @@ fn fd_split_initial(path: &str) -> (Vec<u16>, Vec<u16>) {
         v.pop();
         v
     };
-    if crate::file_exists(&u) == 2 {
+    if crate::file_exists_raw(&u) == 2 {
         wdir = strip(wide_cap(&u, WPATH)); // a folder
     } else {
         match u.rfind('\\') {

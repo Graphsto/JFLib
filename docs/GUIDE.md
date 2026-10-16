@@ -635,6 +635,18 @@ ui.dialog_end(); // always
   `doc_layout` reserves footnotes at page bottoms, continues long notes and appends
   endnotes. Render each `Page.separators` item alongside its lines. Note bodies have
   normal paragraph hit-test IDs, so apps can navigate from the preview to their editor.
+* **Permissions**: an `apps/NAME/PERMISSIONS` file limits what the app may touch: files
+  below patterns, the user's own files, programs, URL schemes, plugins, printing. The build
+  checks it, `ui::main!` installs it, and `plat` refuses everything else: a refused path
+  behaves like a missing one, and stderr shows `PERMDENY ...`. Without the file everything
+  stays allowed. [PERMISSIONS.md](PERMISSIONS.md) has the syntax and the limits.
+
+  ```text
+  fs.write $CONFIG/MeinWerkzeug/**
+  fs.user
+  url https
+  ```
+
 * **Settings**: `base::Ini` reads and writes `[section]` / `key=value` files and keeps comments
   and unknown lines:
 

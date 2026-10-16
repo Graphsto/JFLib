@@ -21,6 +21,7 @@ and tests); `../legacy`, `../rewrite` and `../booksAndContext` lie next to it.
 | [jfWord implementation](../apps/jfWord/docs/IMPLEMENTATION.md) | jfOffice, scientific editing, completed checks and remaining Office/Word compatibility work |
 | [STYLES.md](STYLES.md) | the style model (`ui::Style` + sub-traits), the four styles, writing and checking a style |
 | [PACKAGING.md](PACKAGING.md) | `tools/package.py`: setup.exe with a choice of style, the .deb, icons, `apps/NAME/PACKAGE` |
+| [PERMISSIONS.md](PERMISSIONS.md) | `apps/NAME/PERMISSIONS`: the files, programs, URL schemes, plugins and printing an app may use, and how `plat` enforces them |
 | [`../README.md`](../README.md) | building and testing the Rust code, the rules (`no_std`, no crates, `unsafe` only in `rt` / `simd` / `plat` / `plugin` and the module runtimes), the crate layout, SIMD kernels |
 | [`../plugins/README.md`](../plugins/README.md) | PaintCraft plugins in Rust |
 
@@ -31,7 +32,7 @@ and tests); `../legacy`, `../rewrite` and `../booksAndContext` lie next to it.
 | `build_rs.py` | build and test (`lib`, `app NAME [--style S]`, `all`, `run`, `test [--quick]`, `check`, `plugin`, `ide`) |
 | `lib/` | the library crates: `rt`, `simd`, `plat`, `base`, `gfx`, `text`, `img_core` + one crate per codec family + `img_all`, `img_jxl_enc`, `fx`, `ui`, `plugin` |
 | `styles/` | the style crates `winui`, `classic`, `macos`, `kde` (assets and `INFO` included) |
-| `apps/NAME/` | one folder per app: its Rust code (`main.rs` ...), `tests/*.uis` + fixtures, `res/` (icons), `STYLE`, `TARGETS`, `PACKAGE`, `parity.txt`; `apps/PaintCraft/docs/` (the PaintCraft specification: document, layers, tools, effects, plugins, settings, diagnostics, ...) |
+| `apps/NAME/` | one folder per app: its Rust code (`main.rs` ...), `tests/*.uis` + fixtures, `res/` (icons), `STYLE`, `TARGETS`, `PACKAGE`, `PERMISSIONS`, `parity.txt`; `apps/PaintCraft/docs/` (the PaintCraft specification: document, layers, tools, effects, plugins, settings, diagnostics, ...) |
 | `plugins/` | PaintCraft plugins written in Rust |
 | `modules/` | loadable modules (`jxlenc`, the JPEG XL writer) and their runtime crates `modrt` / `modplat` |
 | `tools/` | `parity.py` (assembly against Rust: apps), `diffcheck.py` (assembly against Rust: check tools), `gendoc.py` (API.md), the check tools (`*_check.py`: codecs, kernels, effects, fonts, plugins), reference models (`*_ref.py`), `package.py`, `mkicon.py`, `ttf2bin.py` / `fontpreview.py` / `refrender.py` (fonts), `wincap.py` / `wslcap.py` (real-window captures), `wincheck.py` / `x11check.py` / `pencheck.py` (real windows, pen input), `testenv.py`, table generators (`gen_*.py`), `measure.py`, `platshared/` and `wlproxy/` (platform acceptance) |

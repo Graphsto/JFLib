@@ -136,6 +136,9 @@ unsafe fn r32(a: usize) -> u32 {
 
 /// open a plugin DLL (see the file header)  [plat_lib_open]
 pub fn lib_open(path: &str) -> Result<Lib, u32> {
+    if !crate::policy::plugin_allowed(path) {
+        return Err(LIBE_IO);
+    }
     // UTF-16, '/' -> '\' (LoadLibrary needs backslashes)
     let mut w: Vec<u16> = Vec::new();
     let mut buf = [0u16; 2];

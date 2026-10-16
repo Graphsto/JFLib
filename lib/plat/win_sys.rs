@@ -179,7 +179,7 @@ fn attributes(path: &str) -> u32 {
 }
 
 /// 0 missing, 1 file, 2 directory  [plat_file_exists]
-pub fn file_exists(path: &str) -> u32 {
+pub(crate) fn file_exists_raw(path: &str) -> u32 {
     match attributes(path) {
         u32::MAX => 0,
         a if a & FILE_ATTR_DIRECTORY != 0 => 2,
@@ -199,7 +199,7 @@ fn mkdir1(path: &str) -> bool {
 }
 
 /// create a directory and its missing parents; an existing directory is fine  [plat_mkdir]
-pub fn mkdir(path: &str) -> bool {
+pub(crate) fn mkdir_raw(path: &str) -> bool {
     if mkdir1(path) {
         return true;
     }
@@ -213,7 +213,7 @@ pub fn mkdir(path: &str) -> bool {
 }
 
 /// a file or an empty directory  [plat_delete]
-pub fn delete(path: &str) -> bool {
+pub(crate) fn delete_raw(path: &str) -> bool {
     let w = to_wide(path);
     // SAFETY: NUL-terminated path.
     unsafe {
@@ -226,14 +226,14 @@ pub fn delete(path: &str) -> bool {
 }
 
 /// rename, replacing an existing target  [plat_rename]
-pub fn rename(old: &str, new: &str) -> bool {
+pub(crate) fn rename_raw(old: &str, new: &str) -> bool {
     let (wo, wn) = (to_wide(old), to_wide(new));
     // SAFETY: NUL-terminated paths.
     unsafe { MoveFileExW(wo.as_ptr(), wn.as_ptr(), MOVEFILE_REPLACE | MOVEFILE_COPY_ALLOWED | MOVEFILE_WRITETHROUGH) != 0 }
 }
 
 /// f(name, is_dir, size_lo) for every entry except "." and ".."  [plat_dir_list]
-pub fn dir_list(path: &str, f: &mut dyn FnMut(&str, bool, u32)) -> bool {
+pub(crate) fn dir_list_raw(path: &str, f: &mut dyn FnMut(&str, bool, u32)) -> bool {
     let mut pat = String::from(path);
     if !(pat.ends_with('/') || pat.ends_with('\\')) || pat.is_empty() {
         pat.push('\\');
@@ -265,7 +265,7 @@ pub fn dir_list(path: &str, f: &mut dyn FnMut(&str, bool, u32)) -> bool {
 // ---------------------------------------------------------------- whole files
 
 /// the contents of a file (at most 2 GB)  [plat_file_read]
-pub fn read_file(path: &str) -> Option<Vec<u8>> {
+pub(crate) fn read_file_raw(path: &str) -> Option<Vec<u8>> {
     let f = File::open_mode(path, GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING)?;
     let size = f.size()?;
     if size > 0x7FFF_FFF0 {
@@ -278,7 +278,7 @@ pub fn read_file(path: &str) -> Option<Vec<u8>> {
 }
 
 /// Write an exclusively created sibling, flush it, then replace path. [plat_file_write]
-pub fn write_file(path: &str, data: &[u8]) -> bool {
+pub(crate) fn write_file_raw(path: &str, data: &[u8]) -> bool {
     if path.is_empty() || path.contains('\0') { return false; }
     let wp = to_wide(path);
     // SAFETY: no arguments.
@@ -317,15 +317,15 @@ pub struct File(isize);
 pub struct FileLock { _file: File }
 impl FileLock {
     /// Open or create without truncating. None means busy, invalid path or I/O failure.
-    pub fn acquire(path: &str) -> Option<Self> {
-        if !matches!(file_exists_checked(path), Some(0 | 1)) { return None; }
+    pub(crate) fn acquire_raw(path: &str) -> Option<Self> {
+        if !matches!(file_exists_checked_raw(path), Some(0 | 1)) { return None; }
         File::open_mode(path, GENERIC_READ | GENERIC_WRITE, 0, OPEN_ALWAYS)
             .map(|file| Self { _file: file })
     }
 }
 
 /// Some(0) only for a missing path, Some(1/2) for file/directory, None for other errors.
-pub fn file_exists_checked(path: &str) -> Option<u32> {
+pub(crate) fn file_exists_checked_raw(path: &str) -> Option<u32> {
     if path.is_empty() || path.contains('\0') { return None; }
     let w = to_wide(path);
     // SAFETY: w is NUL-terminated; GetLastError immediately follows a failed call.
@@ -340,7 +340,7 @@ static TEMP_SEQ: AtomicU32 = AtomicU32::new(0);
 
 impl File {
     /// Create a named file exclusively, allowing a helper to read while its owner writes.
-    pub fn create_new(path: &str) -> Option<File> {
+    pub(crate) fn create_new_raw(path: &str) -> Option<File> {
         Self::open_mode(path, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, CREATE_NEW)
     }
 
@@ -356,7 +356,7 @@ impl File {
     }
 
     /// FO_READ (existing, read only), FO_WRITE (create / truncate), FO_RW (open or create)
-    pub fn open(path: &str, mode: u32) -> Option<File> {
+    pub(crate) fn open_raw(path: &str, mode: u32) -> Option<File> {
         match mode {
             FO_READ => Self::open_mode(path, GENERIC_READ, FILE_SHARE_ALL, OPEN_EXISTING),
             FO_WRITE => Self::open_mode(path, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, CREATE_ALWAYS),
@@ -367,7 +367,7 @@ impl File {
 
     /// a new file "jfgui-*.tmp" in dir (None = temp_dir) that the system deletes when it is
     /// closed (also after a crash)  [plat_file_open_temp]
-    pub fn open_temp(dir: Option<&str>) -> Option<File> {
+    pub(crate) fn open_temp_raw(dir: Option<&str>) -> Option<File> {
         let dir = match dir {
             Some(d) => String::from(d),
             None => temp_dir()?,

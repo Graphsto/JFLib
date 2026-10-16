@@ -57,7 +57,7 @@ Not listed here: `simd` (the SSE2 / AVX2 kernel layer, see `README.md`, "SIMD ke
 - [fx](#fx) -- effects and adjustments
   <br>[lib.rs](#fx-crate-root) · [adj.rs](#fxadjrs) · [artistic.rs](#fxartisticrs) · [enhance.rs](#fxenhancers) · [blur.rs](#fxblurrs) · [color.rs](#fxcolorrs) · [conv.rs](#fxconvrs) · [distort.rs](#fxdistortrs) · [hist.rs](#fxhistrs) · [lochist.rs](#fxlochistrs) · [lut.rs](#fxlutrs) · [noise.rs](#fxnoisers) · [object.rs](#fxobjectrs) · [perlin.rs](#fxperlinrs) · [photo.rs](#fxphotors) · [render.rs](#fxrenderrs) · [stylize.rs](#fxstylizers) · [warp.rs](#fxwarprs)
 - [plat](#plat) -- the platform layer: process, files, threads, windows (Windows and Linux)
-  <br>[lib.rs](#plat-crate-root) · [process.rs](#platprocessrs) · [process_win.rs (Windows)](#platprocess_winrs-windows) · [process_linux.rs (Linux)](#platprocess_linuxrs-linux) · [sync.rs](#platsyncrs) · [net.rs](#platnetrs) · [fs.rs](#platfsrs) · [service.rs](#platservicers) · [watch.rs](#platwatchrs) · [certs.rs](#platcertsrs) · [rand.rs](#platrandrs) · [cpu.rs](#platcpurs) · [capabilities.rs](#platcapabilitiesrs) · [control_stream.rs](#platcontrol_streamrs) · [control_ipc_win.rs (Windows)](#platcontrol_ipc_winrs-windows) · [control_ipc_linux.rs (Linux)](#platcontrol_ipc_linuxrs-linux) · [pool.rs](#platpoolrs) · [win.rs (Windows)](#platwinrs-windows) · [win_api.rs (Windows)](#platwin_apirs-windows) · [win_clip.rs (Windows)](#platwin_cliprs-windows) · [win_filedlg.rs (Windows)](#platwin_filedlgrs-windows) · [win_pen.rs (Windows)](#platwin_penrs-windows) · [win_popup.rs (Windows)](#platwin_popuprs-windows) · [win_shell.rs (Windows)](#platwin_shellrs-windows) · [win_test.rs (Windows)](#platwin_testrs-windows) · [win_inst.rs (Windows)](#platwin_instrs-windows) · [win_sys.rs (Windows)](#platwin_sysrs-windows) · [win_thread.rs (Windows)](#platwin_threadrs-windows) · [win_print.rs (Windows)](#platwin_printrs-windows) · [win_lib.rs (Windows)](#platwin_librs-windows) · [linux.rs (Linux)](#platlinuxrs-linux) · [linux_disp.rs (Linux)](#platlinux_disprs-linux) · [linux_wl.rs (Linux)](#platlinux_wlrs-linux) · [linux_xkb.rs (Linux)](#platlinux_xkbrs-linux) · [linux_x11.rs (Linux)](#platlinux_x11rs-linux) · [linux_portal.rs (Linux)](#platlinux_portalrs-linux) · [linux_sys.rs (Linux)](#platlinux_sysrs-linux) · [linux_thread.rs (Linux)](#platlinux_threadrs-linux) · [linux_print.rs (Linux)](#platlinux_printrs-linux) · [linux_elfload.rs (Linux)](#platlinux_elfloadrs-linux) · [web.rs](#platwebrs) · [web_files.rs](#platweb_filesrs) · [web_windows.rs](#platweb_windowsrs) · [android_ime.rs](#platandroid_imers) · [web_threads.rs](#platweb_threadsrs) · [clipdrop.rs](#platclipdroprs) · [cliprich.rs](#platcliprichrs) · [consts.rs](#platconstsrs) · [evq.rs](#platevqrs) · [ime.rs](#platimers) · [icc.rs](#platiccrs) · [pwin0.rs](#platpwin0rs) · [plib.rs](#platplibrs) · [print.rs](#platprintrs) · [modhost.rs](#platmodhostrs) · [modabi.rs](#platmodabirs)
+  <br>[lib.rs](#plat-crate-root) · [process.rs](#platprocessrs) · [process_win.rs (Windows)](#platprocess_winrs-windows) · [process_linux.rs (Linux)](#platprocess_linuxrs-linux) · [sync.rs](#platsyncrs) · [net.rs](#platnetrs) · [fs.rs](#platfsrs) · [service.rs](#platservicers) · [watch.rs](#platwatchrs) · [certs.rs](#platcertsrs) · [rand.rs](#platrandrs) · [cpu.rs](#platcpurs) · [capabilities.rs](#platcapabilitiesrs) · [policy.rs](#platpolicyrs) · [guarded.rs](#platguardedrs) · [control_stream.rs](#platcontrol_streamrs) · [control_ipc_win.rs (Windows)](#platcontrol_ipc_winrs-windows) · [control_ipc_linux.rs (Linux)](#platcontrol_ipc_linuxrs-linux) · [pool.rs](#platpoolrs) · [win.rs (Windows)](#platwinrs-windows) · [win_api.rs (Windows)](#platwin_apirs-windows) · [win_clip.rs (Windows)](#platwin_cliprs-windows) · [win_filedlg.rs (Windows)](#platwin_filedlgrs-windows) · [win_pen.rs (Windows)](#platwin_penrs-windows) · [win_popup.rs (Windows)](#platwin_popuprs-windows) · [win_shell.rs (Windows)](#platwin_shellrs-windows) · [win_test.rs (Windows)](#platwin_testrs-windows) · [win_inst.rs (Windows)](#platwin_instrs-windows) · [win_sys.rs (Windows)](#platwin_sysrs-windows) · [win_thread.rs (Windows)](#platwin_threadrs-windows) · [win_print.rs (Windows)](#platwin_printrs-windows) · [win_lib.rs (Windows)](#platwin_librs-windows) · [linux.rs (Linux)](#platlinuxrs-linux) · [linux_disp.rs (Linux)](#platlinux_disprs-linux) · [linux_wl.rs (Linux)](#platlinux_wlrs-linux) · [linux_xkb.rs (Linux)](#platlinux_xkbrs-linux) · [linux_x11.rs (Linux)](#platlinux_x11rs-linux) · [linux_portal.rs (Linux)](#platlinux_portalrs-linux) · [linux_sys.rs (Linux)](#platlinux_sysrs-linux) · [linux_thread.rs (Linux)](#platlinux_threadrs-linux) · [linux_print.rs (Linux)](#platlinux_printrs-linux) · [linux_elfload.rs (Linux)](#platlinux_elfloadrs-linux) · [web.rs](#platwebrs) · [web_files.rs](#platweb_filesrs) · [web_windows.rs](#platweb_windowsrs) · [android_ime.rs](#platandroid_imers) · [web_threads.rs](#platweb_threadsrs) · [clipdrop.rs](#platclipdroprs) · [cliprich.rs](#platcliprichrs) · [consts.rs](#platconstsrs) · [evq.rs](#platevqrs) · [ime.rs](#platimers) · [icc.rs](#platiccrs) · [pwin0.rs](#platpwin0rs) · [plib.rs](#platplibrs) · [print.rs](#platprintrs) · [modhost.rs](#platmodhostrs) · [modabi.rs](#platmodabirs)
 - [base](#base) -- UTF-8, command line, settings files, numbers and text
   <br>[lib.rs](#base-crate-root) · [ini.rs](#baseinirs) · [encoding.rs](#baseencodingrs) · [xml.rs](#basexmlrs) · [num.rs](#basenumrs)
 - [datetime](#datetime) -- timestamps, civil dates, RFC 3339, IANA time zones with DST, cron schedules
@@ -161,7 +161,8 @@ Source: [`lib/ui/lib.rs`](../lib/ui/lib.rs)
 - **`main!(...)`**
   the app's entry point: `ui::main!(ui::run(&DESC, &mut MyApp::default(), &style::STYLE));`
   (expands to the `jfgui_main` symbol the platform entry calls; the app crate denies
-  unsafe code, this one item is the exception)
+  unsafe code, this one item is the exception).  It first installs the app's permissions
+  (apps/NAME/PERMISSIONS, which build_rs.py passes as JFGUI_PERMISSIONS; perm.rs).
 
 - **`struct AppDesc`**
   the app descriptor (APP_DESC): title, AF_\* flags, sizes in DIP, accent 0xRRGGBB.  Write
@@ -3885,6 +3886,28 @@ This is a visual chooser, independent of an application's document commands or f
   `variant` selects one of seven sample arrangements (0..=6); larger values wrap.
   `next_flags(ST_DISABLED | ST_CHECKED)` controls behavior and selection, while
   the document sample remains fully readable. The caller applies its own theme on EV_ACT.
+
+#### `ui/perm.rs`
+
+Source: [`lib/ui/perm.rs`](../lib/ui/perm.rs)
+
+```text
+perm -- the app's permissions on the UI side (plat::policy, docs/PERMISSIONS.md): the
+manifest built into the app, the files the user hands over and the library's own file use
+
+  permissions(manifest)   (main!) install apps/NAME/PERMISSIONS, which build_rs.py passes
+                          as JFGUI_PERMISSIONS; Err(exit code) for a manifest it refuses.
+                          The paths on the command line come from the user: with fs.user
+                          they may be read and written (folders with everything below).
+  grant_user(path)        the same for a path of the file dialog or a drop
+  trusted(f)              f on this thread without file checks: the library's own file
+                          dialog lists folders, scripts read and write their files
+
+The key of plat::policy stays here: apps cannot widen their own permissions.
+```
+
+- **`fn permissions(manifest: Option<&str>) -> Result<(), i32>`**
+  (main!) install the app's manifest (None: the app has none, everything stays allowed)
 
 #### `ui/ribbon.rs`
 
@@ -10592,7 +10615,10 @@ plat -- the platform layer: one module per OS with the same functions  [src/plat
            File::open(path, FO_*) / open_temp(dir) -> read_at / write_at / size / sync,
            file_exists(path) (0 / 1 file / 2 dir), mkdir (with parents), delete, rename,
            file_exists_checked(path) (Some(0) missing, None error), FileLock::acquire(path),
-           dir_list(path, f(name, is_dir, size_lo))
+           dir_list(path, f(name, is_dir, size_lo)) -- checked against the app's
+           permissions first (guarded.rs); a refused path behaves like a missing one
+  policy:  the app's permissions (apps/NAME/PERMISSIONS): install, the fs / process /
+           url / plugin / print checks, grants for the user's files      (policy.rs)
   threads: thread_spawn(stack, f) -> Thread (join), thread_yield(), Sem (post / wait),
            wake() (any thread: E_WAKE on the UI thread), wait_events(deadline, on_event)
            (headless), cpu_count(), mem_total()
@@ -11295,7 +11321,178 @@ CAP_SHELL_INTEGRATION: u64 = 1 << 12
   A concrete explanation for the first missing service, or no limitation.
 
 - **`fn capabilities() -> Capabilities`**
-  Current native service set. Browser permissions are supplied by its host adapter.
+  Current native service set, less what the app's permissions leave out (policy.rs).
+  Browser permissions are supplied by its host adapter.
+
+### `plat/policy.rs`
+
+Source: [`lib/plat/policy.rs`](../lib/plat/policy.rs)
+
+```text
+policy -- the app's permissions (apps/NAME/PERMISSIONS, docs/PERMISSIONS.md): parsed once at
+start-up, then checked by the public file, process, shell, plugin and print functions
+
+  install(text) -> Result<Key, String>   parse and activate a manifest (once per process);
+                                         before that, and in apps without one, all is allowed
+  active() -> bool
+  fs_allowed(path, FS_READ | FS_WRITE) / process_allowed(program) / url_allowed(url) /
+  plugin_allowed(path) / print_allowed() -> bool
+                                         a refusal is recorded (denials) and printed once
+                                         per target to stderr: "PERMDENY kind target"
+  Key::grant(path, FS_*) / Key::grant_dir(dir, FS_*)   a file / folder the user handed over
+                                         (file dialog, drop, command line); needs fs.user
+  Key::trusted(f)                        f runs on this thread without the file checks (the
+                                         library's own file dialog and test scripts)
+  denials() -> Vec<Denial>               the last DENIALS_MAX refusals (audit)
+  normalize(path) -> Option<String>      absolute, '/' separators, no "." / ".." / empty
+                                         segments; Windows: upper-case drive letter, no
+                                         device, stream or reserved names; Linux: no ".."
+                                         at all (the kernel applies it after symbolic
+                                         links); None = refused
+  normalize_for(path, windows, cwd)      the same rules for either OS (tests, tools)
+  font_dirs() -> [folder]                the system font folders in scan order (fontdb)
+  cap_mask() -> CAP_* bits               what the policy leaves of capabilities()
+
+Manifest: one rule per line, '#' starts a comment, a key may repeat:
+  fs.read PATTERN..     read files below PATTERN
+  fs.write PATTERN..    write (and read) files below PATTERN
+  fs.user               files the user chooses (dialog, drop, command line): read + write
+  process PATTERN|NAME..   programs Command::spawn / run_elevated may start (NAME: no '/')
+  url SCHEME..|*        open_url schemes (https, mailto, ...)
+  plugins PATTERN..     native libraries for lib_open
+  print                 plat::print
+A PATTERN is an absolute path (X:/.. and //server/share/.. count on Windows only, /.. on
+Linux only), or starts with $CONFIG $TEMP $HOME $EXE $FONTS (a variable without a value
+drops the pattern); '*' / '?' match inside one segment, a '**' segment any
+number of segments ("dir/**" also matches dir itself); "**" alone matches every path.
+Windows compares without case.  Always readable: the font folders, the exe folder and on
+Linux /etc/resolv.conf and /etc/hosts (netio's resolver).
+
+The checks are lexical: a symbolic link inside an allowed folder can point outside it.  On
+Linux a path with a ".." segment is refused: "allowed/link/../x" would leave the folder.
+```
+
+```rust
+/// read access ([`fs_allowed`], [`Key::grant`])
+FS_READ: u32 = 1
+/// write access; implies [`FS_READ`]
+FS_WRITE: u32 = 2
+/// refusals kept for [`denials`]
+DENIALS_MAX: usize = 64
+```
+
+- **`struct Denial`**
+  one refused access
+  - `kind: &'static str` -- "fs.read", "fs.write", "process", "url", "plugins" or "print"
+  - `target: String` -- the path, program, URL or "" (print)
+
+- **`struct Key(())`**
+  The right to widen the installed policy for the user's own files and to run trusted
+  library code; only [`install`] creates one (the UI runtime keeps it to itself).
+
+- **`fn install(text: &str) -> Result<Key, String>`**
+  parse and activate a manifest; Err names the first bad line.  Only the first call of a
+  process can succeed.
+
+- **`fn active() -> bool`**
+  whether a policy restricts this process
+
+- **`fn fs_allowed(path: &str, mode: u32) -> bool`**
+  whether path may be read (FS_READ) or written (FS_WRITE)
+
+- **`fn process_allowed(program: &str) -> bool`**
+  whether Command::spawn / run_elevated may start program (a path, or a name found in PATH)
+
+- **`fn url_allowed(url: &str) -> bool`**
+  whether open_url may open url (its scheme)
+
+- **`fn plugin_allowed(path: &str) -> bool`**
+  whether lib_open may load the native library at path
+
+- **`fn print_allowed() -> bool`**
+  whether plat::print may print
+
+- **`fn denials() -> Vec<Denial>`**
+  the last refusals, oldest first
+
+- **`fn cap_mask() -> u64`**
+  the CAP_\* bits the policy leaves (all without a policy)
+
+**`impl Key`**
+
+- **`fn grant(&self, path: &str, mode: u32) -> bool`**
+  let the app read (FS_READ) or read and write (FS_WRITE) the file at path, which the
+  user chose; false without fs.user or for a path normalize refuses
+- **`fn grant_dir(&self, dir: &str, mode: u32) -> bool`**
+  the same for a folder and everything below it
+- **`fn trusted<R>(&self, f: impl FnOnce() -> R) -> R`**
+  run f on this thread without the file checks
+
+- **`fn font_dirs() -> Vec<String>`**
+  the system font folders in the order fontdb scans them: jfgui_FONTDIRS (';' separated,
+  on Linux also ':'), else the Windows / XDG folders
+
+- **`fn normalize(path: &str) -> Option<String>`**
+  path as an absolute, normalised path of this OS (relative paths against cwd()), or None
+  for a path the policy refuses
+
+- **`fn normalize_for(path: &str, windows: bool, cwd: &str) -> Option<String>`**
+  normalize with the rules of Windows (windows = true) or Linux against the folder cwd
+
+- **`fn pattern_matches(pattern: &str, path: &str) -> bool`**
+  whether pattern (manifest syntax after variables) matches path; both normalised with the
+  rules of this OS (tests)
+
+### `plat/guarded.rs`
+
+Source: [`lib/plat/guarded.rs`](../lib/plat/guarded.rs)
+
+```text
+guarded -- the public file functions: the check of the app's permissions (policy.rs), then
+the OS call (win_sys.rs, linux_sys.rs, web_files.rs: the *_raw functions, which the
+platform layer uses for its own system files)
+
+A refused path looks like a missing or unreadable one: 0 / None / false.
+```
+
+- **`fn file_exists(path: &str) -> u32`**
+  0 missing, 1 file, 2 directory  [plat_file_exists]
+
+- **`fn file_exists_checked(path: &str) -> Option<u32>`**
+  Some(0) only for a missing path, Some(1/2) for file/directory, None for other errors.
+
+- **`fn mkdir(path: &str) -> bool`**
+  create a directory and its missing parents; an existing directory is fine  [plat_mkdir]
+
+- **`fn delete(path: &str) -> bool`**
+  a file or an empty directory  [plat_delete]
+
+- **`fn rename(old: &str, new: &str) -> bool`**
+  rename, replacing an existing target  [plat_rename]
+
+- **`fn dir_list(path: &str, f: &mut dyn FnMut(&str, bool, u32)) -> bool`**
+  f(name, is_dir, size_lo) for every entry except "." and ".."  [plat_dir_list]
+
+- **`fn read_file(path: &str) -> Option<Vec<u8>>`**
+  the contents of a file  [plat_file_read]
+
+- **`fn write_file(path: &str, data: &[u8]) -> bool`**
+  Write an exclusively created sibling, flush it, then replace path. [plat_file_write]
+
+**`impl File`**
+
+- **`fn open(path: &str, mode: u32) -> Option<File>`**
+  FO_READ (existing, read only), FO_WRITE (create / truncate), FO_RW (open or create)
+- **`fn create_new(path: &str) -> Option<File>`**
+  Create a named file exclusively; never open an existing path.
+- **`fn open_temp(dir: Option<&str>) -> Option<File>`**
+  a new file without a lasting name in dir (None = temp_dir) that disappears when it is
+  closed (also after a crash)  [plat_file_open_temp]
+
+**`impl FileLock`**
+
+- **`fn acquire(path: &str) -> Option<Self>`**
+  Open or create without truncating. None means busy, invalid path, refused or I/O failure.
 
 ### `plat/control_stream.rs`
 
@@ -11979,27 +12176,6 @@ threads may use one File at the same time.
 - **`fn cwd() -> String`**
   the current directory, native separators ("" on failure)  [plat_cwd]
 
-- **`fn file_exists(path: &str) -> u32`**
-  0 missing, 1 file, 2 directory  [plat_file_exists]
-
-- **`fn mkdir(path: &str) -> bool`**
-  create a directory and its missing parents; an existing directory is fine  [plat_mkdir]
-
-- **`fn delete(path: &str) -> bool`**
-  a file or an empty directory  [plat_delete]
-
-- **`fn rename(old: &str, new: &str) -> bool`**
-  rename, replacing an existing target  [plat_rename]
-
-- **`fn dir_list(path: &str, f: &mut dyn FnMut(&str, bool, u32)) -> bool`**
-  f(name, is_dir, size_lo) for every entry except "." and ".."  [plat_dir_list]
-
-- **`fn read_file(path: &str) -> Option<Vec<u8>>`**
-  the contents of a file (at most 2 GB)  [plat_file_read]
-
-- **`fn write_file(path: &str, data: &[u8]) -> bool`**
-  Write an exclusively created sibling, flush it, then replace path. [plat_file_write]
-
 - **`struct File(isize)`**
   an open file (closed when dropped)
 
@@ -12007,23 +12183,8 @@ threads may use one File at the same time.
   Nonblocking exclusive sidecar lock. Drop releases the OS handle; keep the file in place.
   All cooperating writers must lock the same path before checking and replacing data.
 
-**`impl FileLock`**
-
-- **`fn acquire(path: &str) -> Option<Self>`**
-  Open or create without truncating. None means busy, invalid path or I/O failure.
-
-- **`fn file_exists_checked(path: &str) -> Option<u32>`**
-  Some(0) only for a missing path, Some(1/2) for file/directory, None for other errors.
-
 **`impl File`**
 
-- **`fn create_new(path: &str) -> Option<File>`**
-  Create a named file exclusively, allowing a helper to read while its owner writes.
-- **`fn open(path: &str, mode: u32) -> Option<File>`**
-  FO_READ (existing, read only), FO_WRITE (create / truncate), FO_RW (open or create)
-- **`fn open_temp(dir: Option<&str>) -> Option<File>`**
-  a new file "jfgui-\*.tmp" in dir (None = temp_dir) that the system deletes when it is
-  closed (also after a crash)  [plat_file_open_temp]
 - **`fn read_at(&self, off: u64, buf: &mut [u8]) -> Option<usize>`**
   bytes read at off (fewer at the end of the file), None on an error before any byte
 - **`fn write_at(&self, off: u64, buf: &[u8]) -> Option<usize>`**
@@ -12675,28 +12836,6 @@ pread / pwrite, so several threads may use one File at the same time.
 - **`fn cwd() -> String`**
   the current directory ("" on failure)  [plat_cwd]
 
-- **`fn file_exists(path: &str) -> u32`**
-  0 missing, 1 file, 2 directory  [plat_file_exists]
-
-- **`fn mkdir(path: &str) -> bool`**
-  create a directory and its missing parents; an existing directory is fine  [plat_mkdir]
-
-- **`fn delete(path: &str) -> bool`**
-  a file or an empty directory  [plat_delete]
-
-- **`fn rename(old: &str, new: &str) -> bool`**
-  rename, replacing an existing target atomically (same file system)  [plat_rename]
-
-- **`fn dir_list(path: &str, f: &mut dyn FnMut(&str, bool, u32)) -> bool`**
-  f(name, is_dir, size_lo) for every entry except "." and ".." (links followed)  [plat_dir_list]
-
-- **`fn read_file(path: &str) -> Option<Vec<u8>>`**
-  the contents of a file, read until the end: files whose size is unknown (/proc) work
-  too  [plat_file_read]
-
-- **`fn write_file(path: &str, data: &[u8]) -> bool`**
-  Write an exclusive sibling, preserve existing access bits, fsync and rename. [plat_file_write]
-
 - **`struct File(i32)`**
   an open file (closed when dropped)
 
@@ -12704,23 +12843,8 @@ pread / pwrite, so several threads may use one File at the same time.
   Nonblocking advisory sidecar lock. Drop closes the descriptor and releases the lock.
   All cooperating writers must lock the same path; never delete an active sidecar.
 
-**`impl FileLock`**
-
-- **`fn acquire(path: &str) -> Option<Self>`**
-  Open or create without truncating. None means busy, invalid path or I/O failure.
-
-- **`fn file_exists_checked(path: &str) -> Option<u32>`**
-  Some(0) only for a missing path, Some(1/2) for file/directory, None for other errors.
-
 **`impl File`**
 
-- **`fn create_new(path: &str) -> Option<File>`**
-  Create a private named file exclusively; never follow or overwrite an existing path.
-- **`fn open(path: &str, mode: u32) -> Option<File>`**
-  FO_READ (existing, read only), FO_WRITE (create / truncate), FO_RW (open or create)
-- **`fn open_temp(dir: Option<&str>) -> Option<File>`**
-  a file without a name in dir (None = temp_dir): O_TMPFILE, else created and unlinked
-  at once; nothing is left behind when it is closed or the process dies
 - **`fn read_at(&self, off: u64, buf: &mut [u8]) -> Option<usize>`**
   bytes read at off (fewer at the end of the file), None on an error before any byte
 - **`fn write_at(&self, off: u64, buf: &[u8]) -> Option<usize>`**
@@ -13100,39 +13224,11 @@ durable storage is a separate asynchronous request confirmed by the browser host
 - **`fn dev_ino(_path: &str) -> Option<(u64, u64)>`**
   Stable filesystem device/inode identity is not available in browser storage.
 
-- **`fn file_exists_checked(name: &str) -> Option<u32>`**
-  Readable virtual file, directory, or missing path; invalid names return None.
-
-- **`fn file_exists(name: &str) -> u32`**
-  Existing virtual file (1), virtual directory (2), or absent/invalid name (0).
-
-- **`fn mkdir(name: &str) -> bool`**
-  Create virtual parent directories; a colliding file causes failure.
-
-- **`fn delete(name: &str) -> bool`**
-  Delete one virtual file or an empty non-built-in virtual directory.
-
-- **`fn rename(old: &str, new: &str) -> bool`**
-  Rename/replace a virtual file atomically inside this instance.
-
-- **`fn dir_list(name: &str, f: &mut dyn FnMut(&str, bool, u32)) -> bool`**
-  Enumerate immediate children from a stable snapshot, without holding a lock in callbacks.
-
-- **`fn read_file(name: &str) -> Option<Vec<u8>>`**
-  Read a copy of a virtual file's bytes.
-
-- **`fn write_file(name: &str, bytes: &[u8]) -> bool`**
-  Atomically replace a worker-local file. This does not claim persistent storage.
-
 - **`struct File`**
   An open virtual file handle; rename or replacement does not invalidate an existing handle.
 
 **`impl File`**
 
-- **`fn open(name: &str, mode: u32) -> Option<Self>`**
-  Open a virtual file with the standard FO_READ/FO_WRITE/FO_RW contract.
-- **`fn open_temp(directory: Option<&str>) -> Option<Self>`**
-  Create a virtual scratch file that is removed when this handle is dropped.
 - **`fn read_at(&self, offset: u64, out: &mut [u8]) -> Option<usize>`**
   Read available bytes at an offset, returning zero at EOF.
 - **`fn write_at(&self, offset: u64, bytes: &[u8]) -> Option<usize>`**
@@ -13144,11 +13240,6 @@ durable storage is a separate asynchronous request confirmed by the browser host
 
 - **`struct FileLock`**
   Nonblocking exclusive lock inside one browser instance's virtual namespace.
-
-**`impl FileLock`**
-
-- **`fn acquire(name: &str) -> Option<Self>`**
-  Acquire a lock until Drop; this is not an inter-tab or operating-system lock.
 
 ### `plat/web_windows.rs`
 

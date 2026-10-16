@@ -122,7 +122,10 @@ struct El {
 
 /// open a plugin ELF object (see the file header)  [plat_lib_open]
 pub fn lib_open(path: &str) -> Result<Lib, u32> {
-    let f = File::open(path, FO_READ).ok_or(LIBE_IO)?;
+    if !crate::policy::plugin_allowed(path) {
+        return Err(LIBE_IO);
+    }
+    let f = File::open_raw(path, FO_READ).ok_or(LIBE_IO)?;
     let size = f.size().ok_or(LIBE_IO)?;
     if size > LIB_FILE_MAX {
         return Err(LIBE_IO);

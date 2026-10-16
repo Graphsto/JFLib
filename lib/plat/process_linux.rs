@@ -39,7 +39,7 @@ pub(super) fn spawn(c: &Command<'_>) -> Result<Child, u32> {
     let program = if c.program.contains('/') { String::from(c.program) } else {
         crate::env("PATH").unwrap_or_else(|| String::from("/usr/bin:/bin")).split(':')
             .map(|p| format!("{}/{}", if p.is_empty() { "." } else { p }, c.program))
-            .find(|p| crate::file_exists(p) == 1).ok_or(2u32)?
+            .find(|p| crate::file_exists_raw(p) == 1).ok_or(2u32)?
     };
     let exe = z(&program); let dir = c.cwd.map(z);
     let strs: Vec<Vec<u8>> = core::iter::once(c.program).chain(c.args.iter().copied()).map(z).collect();
@@ -142,7 +142,7 @@ pub(super) fn run_elevated(program: &str, args: &[&str]) -> Result<i32, String> 
     let tool = if elevated() {
         program
     } else {
-        let found = crate::env("PATH").unwrap_or_else(|| String::from("/usr/bin:/bin")).split(':').any(|p| crate::file_exists(&format!("{}/pkexec", p)) == 1);
+        let found = crate::env("PATH").unwrap_or_else(|| String::from("/usr/bin:/bin")).split(':').any(|p| crate::file_exists_raw(&format!("{}/pkexec", p)) == 1);
         if !found {
             return Err(format!("Root-Rechte nötig: sudo {} {}", program, args.join(" ")));
         }

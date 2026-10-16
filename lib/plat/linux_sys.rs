@@ -117,7 +117,7 @@ pub fn cwd() -> String {
 // ---------------------------------------------------------------- directories and names
 
 /// 0 missing, 1 file, 2 directory  [plat_file_exists]
-pub fn file_exists(path: &str) -> u32 {
+pub(crate) fn file_exists_raw(path: &str) -> u32 {
     let p = path_z(path);
     match stat_at(AT_FDCWD, p.as_ptr()) {
         None => 0,
@@ -139,7 +139,7 @@ fn mkdir1(path: &[u8]) -> bool {
 }
 
 /// create a directory and its missing parents; an existing directory is fine  [plat_mkdir]
-pub fn mkdir(path: &str) -> bool {
+pub(crate) fn mkdir_raw(path: &str) -> bool {
     let b = path.as_bytes();
     if mkdir1(b) {
         return true;
@@ -153,7 +153,7 @@ pub fn mkdir(path: &str) -> bool {
 }
 
 /// a file or an empty directory  [plat_delete]
-pub fn delete(path: &str) -> bool {
+pub(crate) fn delete_raw(path: &str) -> bool {
     let p = path_z(path);
     // SAFETY: NUL-terminated path.
     unsafe {
@@ -166,14 +166,14 @@ pub fn delete(path: &str) -> bool {
 }
 
 /// rename, replacing an existing target atomically (same file system)  [plat_rename]
-pub fn rename(old: &str, new: &str) -> bool {
+pub(crate) fn rename_raw(old: &str, new: &str) -> bool {
     let (o, n) = (path_z(old), path_z(new));
     // SAFETY: NUL-terminated paths.
     unsafe { syscall3(SYS_RENAME, o.as_ptr() as usize, n.as_ptr() as usize, 0) == 0 }
 }
 
 /// f(name, is_dir, size_lo) for every entry except "." and ".." (links followed)  [plat_dir_list]
-pub fn dir_list(path: &str, f: &mut dyn FnMut(&str, bool, u32)) -> bool {
+pub(crate) fn dir_list_raw(path: &str, f: &mut dyn FnMut(&str, bool, u32)) -> bool {
     let p = path_z(path);
     // SAFETY: NUL-terminated path; the descriptor is closed on every path.
     let fd = unsafe { syscall6(SYS_OPENAT, AT_FDCWD, p.as_ptr() as usize, O_DIRECTORY | O_CLOEXEC, 0, 0, 0) };
@@ -226,8 +226,8 @@ pub fn dir_list(path: &str, f: &mut dyn FnMut(&str, bool, u32)) -> bool {
 
 /// the contents of a file, read until the end: files whose size is unknown (/proc) work
 /// too  [plat_file_read]
-pub fn read_file(path: &str) -> Option<Vec<u8>> {
-    let f = File::open(path, FO_READ)?;
+pub(crate) fn read_file_raw(path: &str) -> Option<Vec<u8>> {
+    let f = File::open_raw(path, FO_READ)?;
     let size = f.size()?;
     if size > 0x7FFF_FFF0 {
         return None;
@@ -248,7 +248,7 @@ pub fn read_file(path: &str) -> Option<Vec<u8>> {
 }
 
 /// Write an exclusive sibling, preserve existing access bits, fsync and rename. [plat_file_write]
-pub fn write_file(path: &str, data: &[u8]) -> bool {
+pub(crate) fn write_file_raw(path: &str, data: &[u8]) -> bool {
     if path.is_empty() || path.contains('\0') { return false; }
     let dst = path_z(path);
     let mut st = [0u64; 18];
@@ -301,9 +301,9 @@ pub struct File(i32);
 pub struct FileLock { _file: File }
 impl FileLock {
     /// Open or create without truncating. None means busy, invalid path or I/O failure.
-    pub fn acquire(path: &str) -> Option<Self> {
-        if !matches!(file_exists_checked(path), Some(0 | 1)) { return None; }
-        let file = File::open(path, FO_RW)?;
+    pub(crate) fn acquire_raw(path: &str) -> Option<Self> {
+        if !matches!(file_exists_checked_raw(path), Some(0 | 1)) { return None; }
+        let file = File::open_raw(path, FO_RW)?;
         // SAFETY: file owns a valid descriptor. flock(LOCK_EX | LOCK_NB) never blocks.
         let result = unsafe { syscall3(73, file.0 as usize, 6, 0) };
         if result == 0 { Some(Self { _file: file }) } else { None }
@@ -311,7 +311,7 @@ impl FileLock {
 }
 
 /// Some(0) only for a missing path, Some(1/2) for file/directory, None for other errors.
-pub fn file_exists_checked(path: &str) -> Option<u32> {
+pub(crate) fn file_exists_checked_raw(path: &str) -> Option<u32> {
     if path.is_empty() || path.contains('\0') { return None; }
     let p = path_z(path);
     let mut st = [0u64; 18];
@@ -328,7 +328,7 @@ static TEMP_SEQ: AtomicU32 = AtomicU32::new(0);
 
 impl File {
     /// Create a private named file exclusively; never follow or overwrite an existing path.
-    pub fn create_new(path: &str) -> Option<File> {
+    pub(crate) fn create_new_raw(path: &str) -> Option<File> {
         let p = path_z(path);
         // SAFETY: NUL-terminated path; O_EXCL rejects existing paths (including symlinks).
         let fd = unsafe { syscall6(SYS_OPENAT, AT_FDCWD, p.as_ptr() as usize,
@@ -337,7 +337,7 @@ impl File {
     }
 
     /// FO_READ (existing, read only), FO_WRITE (create / truncate), FO_RW (open or create)
-    pub fn open(path: &str, mode: u32) -> Option<File> {
+    pub(crate) fn open_raw(path: &str, mode: u32) -> Option<File> {
         let flags = match mode {
             FO_READ => O_CLOEXEC,
             FO_WRITE => O_RDWR | O_CREAT | O_TRUNC | O_CLOEXEC,
@@ -352,7 +352,7 @@ impl File {
 
     /// a file without a name in dir (None = temp_dir): O_TMPFILE, else created and unlinked
     /// at once; nothing is left behind when it is closed or the process dies
-    pub fn open_temp(dir: Option<&str>) -> Option<File> {
+    pub(crate) fn open_temp_raw(dir: Option<&str>) -> Option<File> {
         let dir = match dir {
             Some(d) => String::from(d),
             None => temp_dir()?,

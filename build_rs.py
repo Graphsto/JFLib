@@ -159,9 +159,13 @@ def run_rustc_pipelined(cmd, on_meta):
     return p.wait(), "".join(lines)
 
 
-def run_cmd(cmd, quiet=False, on_meta=None):
+def run_cmd(cmd, quiet=False, on_meta=None, env=None):
     """run a command (rustc: within RUSTC_SLOTS; on_meta: pipelined, run_rustc_pipelined) ->
-    its output, BuildError on failure"""
+    its output, BuildError on failure.  env: variables to set (None as a value: removed)"""
+    full_env = None
+    if env:
+        full_env = {k: v for k, v in os.environ.items() if k not in env}
+        full_env.update({k: v for k, v in env.items() if v is not None})
     if cmd[0] == "rustc" and on_meta:
         with RUSTC_SLOTS:
             code, out = run_rustc_pipelined(cmd, on_meta)
@@ -169,9 +173,10 @@ def run_cmd(cmd, quiet=False, on_meta=None):
     elif cmd[0] == "rustc":
         with RUSTC_SLOTS:
             r = subprocess.run([str(c) for c in cmd], capture_output=True, text=True, encoding="utf-8",
-                               errors="replace")
+                               errors="replace", env=full_env)
     else:
-        r = subprocess.run([str(c) for c in cmd], capture_output=True, text=True, encoding="utf-8", errors="replace")
+        r = subprocess.run([str(c) for c in cmd], capture_output=True, text=True, encoding="utf-8", errors="replace",
+                           env=full_env)
     out = (r.stdout + r.stderr).strip()
     if r.returncode != 0:
         raise BuildError(out or f"{cmd[0]} failed")
@@ -364,6 +369,59 @@ def app_targets(name):
     # explicitly (portabletest does); they may intentionally exercise OS syscalls.
     web = any("ui::launch(" in p.read_text(encoding="utf-8") for p in project_sources(root) if p.suffix == ".rs")
     return ["win", "linux", "web"] if web else ["win", "linux"]
+
+
+# ---------------------------------------------------------------- permissions
+# apps/NAME/PERMISSIONS: the app's permissions (docs/PERMISSIONS.md, lib/plat/policy.rs).  The
+# build checks the syntax and hands the text to rustc as JFGUI_PERMISSIONS; ui::main! installs
+# it at start-up.  Without the file the app may do everything (as before).
+PERM_KEYS_ARGS = ("fs.read", "fs.write", "process", "plugins", "url")
+PERM_KEYS_FLAG = ("fs.user", "print")
+PERM_VARS = ("CONFIG", "TEMP", "HOME", "EXE", "FONTS")
+
+
+def perm_pattern_error(a):
+    """None when a is a valid path pattern of a manifest, else the reason"""
+    if a == "**":
+        return None
+    if a.startswith("$"):
+        var = re.split(r"[/\\]", a[1:], maxsplit=1)[0]
+        return None if var in PERM_VARS else f"unknown variable ${var} ({', '.join('$' + v for v in PERM_VARS)})"
+    if re.match(r"^[A-Za-z]:[/\\]", a) or a.startswith(("//", "\\\\", "/")):
+        return None
+    return f"{a} is not absolute (start it with /, X:/ or a variable)"
+
+
+def app_permissions(name):
+    """the checked text of apps/NAME/PERMISSIONS, or None without the file"""
+    f = ROOT / "apps" / name / "PERMISSIONS"
+    if not f.exists():
+        return None
+    text = f.read_text(encoding="utf-8")
+    where = f.relative_to(ROOT).as_posix()
+    for i, ln in enumerate(text.splitlines(), 1):
+        words = ln.split("#")[0].split()
+        if not words:
+            continue
+        key, args = words[0], words[1:]
+        if key in PERM_KEYS_FLAG:
+            if args:
+                raise BuildError(f"{where}:{i}: {key} takes no arguments")
+        elif key in PERM_KEYS_ARGS:
+            if not args:
+                raise BuildError(f"{where}:{i}: {key} needs at least one argument")
+            for a in args:
+                if key == "url":
+                    if a != "*" and not re.fullmatch(r"[A-Za-z0-9+.-]+", a):
+                        raise BuildError(f"{where}:{i}: {a} is not a URL scheme (https, mailto, ... or *)")
+                elif key == "process" and not re.search(r"[/\\$]", a):
+                    continue                                    # a program name looked up in PATH
+                elif (err := perm_pattern_error(a)):
+                    raise BuildError(f"{where}:{i}: {err}")
+        else:
+            raise BuildError(f"{where}:{i}: unknown permission {key} "
+                             f"({', '.join(PERM_KEYS_ARGS[:2] + PERM_KEYS_FLAG[:1] + PERM_KEYS_ARGS[2:] + PERM_KEYS_FLAG[1:])})")
+    return text
 
 
 def app_style(name):
@@ -650,8 +708,10 @@ class Builder:
             from tools.android import build_apk
             return build_apk(self, name, style, variant, root, crates, run_cmd)
         lto = self.profile["lto"] if self.release and self.profile else "fat"      # r13-measure
+        perms = app_permissions(name)                     # permissions: the app's manifest
         digest = self.src_hash(root, deps, extra=style + ("" if lto == "fat" else f" lto={lto}")
-                               + (" wasm-variant-link-v1" if self.target == "web" else ""))
+                               + (" wasm-variant-link-v1" if self.target == "web" else "")
+                               + ("" if perms is None else " permissions=" + perms))
         key = "app_" + name + (f"@{style}" if variant else "")
         vdir = self.dir / style if variant else self.dir
         if self.target == "web":
@@ -692,7 +752,7 @@ class Builder:
         linked = link_root / name / exe.name if self.target == "web" else exe
         linked.parent.mkdir(parents=True, exist_ok=True)
         cmd += ["-o", linked, root]
-        run_cmd(cmd)
+        run_cmd(cmd, env={"JFGUI_PERMISSIONS": perms})
         if linked != exe:
             shutil.copyfile(linked, exe)
         pdb = vdir / f"{name}.pdb"                # only this app's (paint* would match PaintCraft's too)
@@ -747,7 +807,7 @@ class Builder:
             cmd += ["--extern", f"style={self.rlib(f'style_{style}')}"]
         cmd += self.native_link_args(app, exe, "WINDOWS" if kind == "gui" else "CONSOLE")
         cmd += ["-o", exe, root]
-        run_cmd(cmd)
+        run_cmd(cmd, env={"JFGUI_PERMISSIONS": None})    # permissions: only the app's main exe
         pdb = self.dir / f"{name}.pdb"
         if pdb.exists():
             pdb.unlink()

@@ -499,6 +499,8 @@ For rust-analyzer, `python build_rs.py ide` generates `rust-project.json`.
 | [Styles](docs/STYLES.md) | Appearance, style interfaces, and assets |
 | [Build Manager](apps/buildManager/README.md) | Profiles, queue, tests, launching, and releases |
 | [Packaging](docs/PACKAGING.md) | Windows installers, Debian packages, icons, and package metadata |
+| [Permissions](docs/PERMISSIONS.md) | The `PERMISSIONS` manifest: files, programs, URLs, plugins, and printing an app may use |
+| [Roadmap](docs/ROADMAP.md) | What the library still lacks, with priorities (German) |
 | [Android Gallery](apps/androidGallery/README.md) | APKs, Android prerequisites, input, and port status |
 | [Web and agent control](docs/AGENT_WEB.md) | Browser host and explicit CLI/JSON/MCP interfaces |
 | [PaintCraft plugins](plugins/README.md) | Native plugins and plugin builds |

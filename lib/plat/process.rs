@@ -28,6 +28,9 @@ pub fn run_elevated(program: &str, args: &[&str]) -> Result<i32, String> {
     if program.is_empty() || program.contains('\0') || args.iter().any(|a| a.contains('\0')) {
         return Err(String::from("ungültiger Aufruf"));
     }
+    if !crate::policy::process_allowed(program) {
+        return Err(String::from("vom Berechtigungs-Manifest (PERMISSIONS) nicht erlaubt"));
+    }
     native::run_elevated(program, args)
 }
 
@@ -44,6 +47,9 @@ impl Command<'_> {
             || self.cwd.is_some_and(|p| p.contains('\0'))
             || self.env.iter().any(|(k, v)| k.is_empty() || k.contains(['=', '\0']) || v.is_some_and(|s| s.contains('\0')))
         { return Err(22); }
+        if !crate::policy::process_allowed(self.program) {
+            return Err(if cfg!(windows) { 5 } else { 13 }); // access denied / EACCES
+        }
         native::spawn(self)
     }
 }

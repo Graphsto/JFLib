@@ -23,7 +23,7 @@ pub fn root_bundle() -> Option<Vec<u8>> {
         "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",
         "/etc/ssl/cert.pem",
     ];
-    PATHS.iter().find_map(|p| crate::read_file(p))
+    PATHS.iter().find_map(|p| crate::read_file_raw(p))
 }
 
 #[cfg(windows)]

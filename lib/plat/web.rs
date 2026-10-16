@@ -242,13 +242,14 @@ pub fn forget_request(id: u32) -> bool {
 /// Services supplied by this browser session, including dynamically granted host services.
 pub fn capabilities() -> Capabilities {
     Capabilities {
-        available: crate::CAP_FILE_READ
+        available: (crate::CAP_FILE_READ
             | crate::CAP_FILE_WRITE
             // Rich formats are instance-local. System text writes need browser permission.
             | crate::CAP_CLIPBOARD_RICH
             | crate::CAP_WINDOWING
             | if cfg!(web_threads) { crate::CAP_THREADS } else { 0 }
-            | CAP_EXTRA.load(Ordering::Relaxed) as u64,
+            | CAP_EXTRA.load(Ordering::Relaxed) as u64)
+            & crate::policy::cap_mask(),
     }
 }
 /// App start arguments copied from the host, with a synthetic executable name first.
@@ -403,6 +404,7 @@ pub fn open_url(url: &str) -> i32 {
     if !["https://", "http://", "mailto:"]
         .iter()
         .any(|p| url.starts_with(p))
+        || !crate::policy::url_allowed(url)
     {
         return -1;
     }
@@ -668,7 +670,7 @@ pub extern "C" fn jfgui_import(path_len: u32, total_len: u32, dropped: u32, dura
     let Ok(path) = core::str::from_utf8(path_bytes) else {
         return 0;
     };
-    if !write_file(path, &bytes[path_len as usize..]) {
+    if !write_file_raw(path, &bytes[path_len as usize..]) {
         return 0;
     }
     if durable != 0 {

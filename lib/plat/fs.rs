@@ -289,14 +289,23 @@ mod win {
     }
 
     pub fn stat(path: &str) -> Option<Meta> {
+        if !(crate::policy::fs_allowed(path, crate::policy::FS_READ)) {
+            return None;
+        }
         meta_of(&open(path, FILE_READ_ATTRIBUTES, 0)?)
     }
 
     pub fn lstat(path: &str) -> Option<Meta> {
+        if !(crate::policy::fs_allowed(path, crate::policy::FS_READ)) {
+            return None;
+        }
         meta_of(&open(path, FILE_READ_ATTRIBUTES, OPEN_REPARSE_POINT)?)
     }
 
     pub fn read_dir(path: &str) -> Option<Vec<DirEntry>> {
+        if !(crate::policy::fs_allowed(path, crate::policy::FS_READ)) {
+            return None;
+        }
         let pat = wz(&super::join(&long_path(path), "*"));
         // SAFETY: plain data, filled by the call.
         let mut d: FindData = unsafe { core::mem::zeroed() };
@@ -324,6 +333,9 @@ mod win {
     }
 
     pub fn read_link(path: &str) -> Option<String> {
+        if !crate::policy::fs_allowed(path, crate::policy::FS_READ) {
+            return None;
+        }
         let h = open(path, FILE_READ_ATTRIBUTES, OPEN_REPARSE_POINT)?;
         let mut buf = alloc::vec![0u8; 16 * 1024];
         let mut got = 0u32;
@@ -353,6 +365,9 @@ mod win {
 
     /// a symbolic link (without the developer mode or the privilege this fails)
     pub fn symlink(target: &str, link: &str, dir: bool) -> bool {
+        if !(crate::policy::fs_allowed(link, crate::policy::FS_WRITE)) {
+            return false;
+        }
         let (t, l) = (wz(target), lp(link));
         // SYMBOLIC_LINK_FLAG_DIRECTORY, SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE
         // SAFETY: valid wide strings.
@@ -360,12 +375,18 @@ mod win {
     }
 
     pub fn hard_link(existing: &str, new: &str) -> bool {
+        if !(crate::policy::fs_allowed(existing, crate::policy::FS_READ) && crate::policy::fs_allowed(new, crate::policy::FS_WRITE)) {
+            return false;
+        }
         let (e, n) = (lp(existing), lp(new));
         // SAFETY: valid wide strings.
         unsafe { CreateHardLinkW(n.as_ptr(), e.as_ptr(), 0) != 0 }
     }
 
     pub fn set_times(path: &str, atime_ns: i64, mtime_ns: i64) -> bool {
+        if !(crate::policy::fs_allowed(path, crate::policy::FS_WRITE)) {
+            return false;
+        }
         let Some(h) = open(path, FILE_WRITE_ATTRIBUTES, OPEN_REPARSE_POINT) else { return false };
         let (a, m) = (ns_ft(atime_ns), ns_ft(mtime_ns));
         // SAFETY: a valid handle; creation time unchanged (null).
@@ -374,6 +395,9 @@ mod win {
 
     /// FILE_ATTRIBUTE_* (read-only, hidden, system, archive ...)
     pub fn set_attrs(path: &str, attrs: u32) -> bool {
+        if !(crate::policy::fs_allowed(path, crate::policy::FS_WRITE)) {
+            return false;
+        }
         let w = lp(path);
         // SAFETY: a valid wide path.
         unsafe { SetFileAttributesW(w.as_ptr(), attrs & 0x27 | if attrs & 0x27 == 0 { 0x80 } else { 0 }) != 0 }
@@ -388,6 +412,9 @@ mod win {
     }
 
     pub fn free_space(path: &str) -> Option<(u64, u64)> {
+        if !(crate::policy::fs_allowed(path, crate::policy::FS_READ)) {
+            return None;
+        }
         let w = lp(path);
         let (mut avail, mut total, mut free) = (0u64, 0u64, 0u64);
         // SAFETY: valid output pointers.
@@ -411,6 +438,9 @@ mod win {
     }
 
     pub fn write_file_private(path: &str, data: &[u8]) -> bool {
+        if !(crate::policy::fs_allowed(path, crate::policy::FS_WRITE)) {
+            return false;
+        }
         let tmp = alloc::format!("{}.tmp{}", path, crate::time_us() % 1_000_000);
         let w = lp(&tmp);
         let Some((sa, sd)) = private_sa() else { return false };
@@ -442,12 +472,15 @@ mod win {
         // SAFETY: valid wide paths.
         let ok = unsafe { MoveFileExW(w.as_ptr(), dst.as_ptr(), 1 | 8) } != 0;
         if !ok {
-            crate::delete(&tmp);
+            crate::delete_raw(&tmp);
         }
         ok
     }
 
     pub fn mkdir_private(path: &str) -> bool {
+        if !(crate::policy::fs_allowed(path, crate::policy::FS_WRITE)) {
+            return false;
+        }
         if stat(path).is_some_and(|m| m.is_dir()) {
             return true;
         }
@@ -588,14 +621,23 @@ mod lnx {
     }
 
     pub fn stat(path: &str) -> Option<Meta> {
+        if !(crate::policy::fs_allowed(path, crate::policy::FS_READ)) {
+            return None;
+        }
         statx(path, 0)
     }
 
     pub fn lstat(path: &str) -> Option<Meta> {
+        if !(crate::policy::fs_allowed(path, crate::policy::FS_READ)) {
+            return None;
+        }
         statx(path, AT_SYMLINK_NOFOLLOW)
     }
 
     pub fn read_dir(path: &str) -> Option<Vec<DirEntry>> {
+        if !(crate::policy::fs_allowed(path, crate::policy::FS_READ)) {
+            return None;
+        }
         let fd = open(path, O_RDONLY | O_DIRECTORY, 0)?;
         let mut out = Vec::new();
         let mut buf = alloc::vec![0u8; 32 * 1024];
@@ -638,6 +680,14 @@ mod lnx {
     }
 
     pub fn read_link(path: &str) -> Option<String> {
+        if !crate::policy::fs_allowed(path, crate::policy::FS_READ) {
+            return None;
+        }
+        read_link_raw(path)
+    }
+
+    // read_link without the policy check (the system files of local_zone_id)
+    fn read_link_raw(path: &str) -> Option<String> {
         let p = z(path);
         let mut buf = alloc::vec![0u8; 4096];
         // SAFETY: the buffer is writable.
@@ -650,18 +700,27 @@ mod lnx {
     }
 
     pub fn symlink(target: &str, link: &str, _dir: bool) -> bool {
+        if !(crate::policy::fs_allowed(link, crate::policy::FS_WRITE)) {
+            return false;
+        }
         let (t, l) = (z(target), z(link));
         // SAFETY: NUL-terminated paths.
         unsafe { syscall3(SYS_SYMLINKAT, t.as_ptr() as usize, AT_FDCWD as usize, l.as_ptr() as usize) >= 0 }
     }
 
     pub fn hard_link(existing: &str, new: &str) -> bool {
+        if !(crate::policy::fs_allowed(existing, crate::policy::FS_READ) && crate::policy::fs_allowed(new, crate::policy::FS_WRITE)) {
+            return false;
+        }
         let (e, n) = (z(existing), z(new));
         // SAFETY: NUL-terminated paths.
         unsafe { syscall6(SYS_LINKAT, AT_FDCWD as usize, e.as_ptr() as usize, AT_FDCWD as usize, n.as_ptr() as usize, 0, 0) >= 0 }
     }
 
     pub fn set_times(path: &str, atime_ns: i64, mtime_ns: i64) -> bool {
+        if !(crate::policy::fs_allowed(path, crate::policy::FS_WRITE)) {
+            return false;
+        }
         let p = z(path);
         let ts = [atime_ns.div_euclid(1_000_000_000), atime_ns.rem_euclid(1_000_000_000), mtime_ns.div_euclid(1_000_000_000), mtime_ns.rem_euclid(1_000_000_000)];
         // SAFETY: two timespecs; the link itself (AT_SYMLINK_NOFOLLOW).
@@ -672,6 +731,9 @@ mod lnx {
     /// opened with O_NOFOLLOW and changed through that descriptor, so a link swapped in
     /// meanwhile cannot redirect the change)
     pub fn set_mode(path: &str, mode: u32) -> bool {
+        if !(crate::policy::fs_allowed(path, crate::policy::FS_WRITE)) {
+            return false;
+        }
         match open(path, O_RDONLY | O_NOFOLLOW | O_NONBLOCK, 0) {
             // SAFETY: an owned descriptor.
             Some(fd) => unsafe { syscall3(SYS_FCHMOD, fd.0, (mode & 0o7777) as usize, 0) >= 0 },
@@ -680,6 +742,9 @@ mod lnx {
     }
 
     pub fn set_owner(path: &str, uid: u32, gid: u32) -> bool {
+        if !(crate::policy::fs_allowed(path, crate::policy::FS_WRITE)) {
+            return false;
+        }
         let p = z(path);
         // SAFETY: a NUL-terminated path; the link itself.
         unsafe { syscall6(SYS_FCHOWNAT, AT_FDCWD as usize, p.as_ptr() as usize, uid as usize, gid as usize, AT_SYMLINK_NOFOLLOW, 0) >= 0 }
@@ -690,6 +755,9 @@ mod lnx {
     }
 
     pub fn free_space(path: &str) -> Option<(u64, u64)> {
+        if !(crate::policy::fs_allowed(path, crate::policy::FS_READ)) {
+            return None;
+        }
         let p = z(path);
         let mut b = [0u8; 120];
         // SAFETY: struct statfs is 120 bytes on x86_64.
@@ -703,12 +771,18 @@ mod lnx {
     }
 
     pub fn sync_dir(dir: &str) -> bool {
+        if !(crate::policy::fs_allowed(dir, crate::policy::FS_WRITE)) {
+            return false;
+        }
         let Some(fd) = open(if dir.is_empty() { "." } else { dir }, O_RDONLY | O_DIRECTORY, 0) else { return false };
         // SAFETY: an owned descriptor.
         unsafe { syscall3(SYS_FSYNC, fd.0, 0, 0) >= 0 }
     }
 
     pub fn write_file_private(path: &str, data: &[u8]) -> bool {
+        if !(crate::policy::fs_allowed(path, crate::policy::FS_WRITE)) {
+            return false;
+        }
         let tmp = alloc::format!("{}.tmp{}", path, crate::time_us() % 1_000_000);
         let Some(fd) = open(&tmp, O_WRONLY | O_CREAT | O_TRUNC, 0o600) else { return false };
         let mut off = 0;
@@ -744,6 +818,9 @@ mod lnx {
     }
 
     pub fn mkdir_private(path: &str) -> bool {
+        if !(crate::policy::fs_allowed(path, crate::policy::FS_WRITE)) {
+            return false;
+        }
         if stat(path).is_some_and(|m| m.is_dir()) {
             return true;
         }
@@ -767,12 +844,12 @@ mod lnx {
                 return Some(String::from(tz));
             }
         }
-        if let Some(t) = read_link("/etc/localtime") {
+        if let Some(t) = read_link_raw("/etc/localtime") {
             if let Some(i) = t.find("zoneinfo/") {
                 return Some(String::from(&t[i + 9..]));
             }
         }
-        crate::read_file("/etc/timezone").map(|b| String::from(String::from_utf8_lossy(&b).trim())).filter(|s| !s.is_empty())
+        crate::read_file_raw("/etc/timezone").map(|b| String::from(String::from_utf8_lossy(&b).trim())).filter(|s| !s.is_empty())
     }
 
     /// the \\?\ form exists on Windows only

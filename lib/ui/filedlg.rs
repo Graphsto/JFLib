@@ -331,6 +331,9 @@ impl Ui {
                 self.m.filedlg.id = 0;
             }
             self.dialog_end();
+            if result == EV_ACT {
+                super::perm::grant_user(path); // the system dialog: the user chose it (fs.user)
+            }
             return result;
         }
         self.fd_toolbar_row(id);
@@ -382,6 +385,9 @@ impl Ui {
             }
         }
         self.dialog_end();
+        if result == EV_ACT {
+            super::perm::grant_user(path); // the user chose it (fs.user)
+        }
         result
     }
 
@@ -407,7 +413,7 @@ impl Ui {
         let path = super::basic::cstr(path);
         if !path.is_empty() {
             let mut tmp = norm(&copy_cap(path, FD_PATH));
-            if plat::file_exists(&tmp) == 2 {
+            if super::perm::trusted(|| plat::file_exists(&tmp)) == 2 {
                 self.m.filedlg.set_dir(&tmp);
                 self.fd_load();
                 return;
@@ -422,7 +428,7 @@ impl Ui {
                     } else {
                         tmp.truncate(k);
                     }
-                    if plat::file_exists(&tmp) == 2 {
+                    if super::perm::trusted(|| plat::file_exists(&tmp)) == 2 {
                         self.m.filedlg.set_dir(&tmp);
                         self.fd_load();
                         return;
@@ -540,7 +546,7 @@ impl Ui {
             return false;
         }
         tmp = canon(&norm(&tmp));
-        let ex = plat::file_exists(&tmp);
+        let ex = super::perm::trusted(|| plat::file_exists(&tmp));
         if ex == 2 {
             // a folder name: go there
             self.m.filedlg.set_dir(&tmp);
@@ -587,7 +593,7 @@ impl Ui {
         f.msg = None;
         let dir = f.dir.clone();
         let mut ents: Vec<(String, bool)> = Vec::new();
-        plat::dir_list(&dir, &mut |name: &str, is_dir: bool, _size: u32| ents.push((String::from(name), is_dir)));
+        super::perm::trusted(|| plat::dir_list(&dir, &mut |name: &str, is_dir: bool, _size: u32| ents.push((String::from(name), is_dir))));
         let f = &mut self.m.filedlg;
         for (name, is_dir) in ents {
             // hidden entries, "." and ".."

@@ -7,7 +7,10 @@
 //            File::open(path, FO_*) / open_temp(dir) -> read_at / write_at / size / sync,
 //            file_exists(path) (0 / 1 file / 2 dir), mkdir (with parents), delete, rename,
 //            file_exists_checked(path) (Some(0) missing, None error), FileLock::acquire(path),
-//            dir_list(path, f(name, is_dir, size_lo))
+//            dir_list(path, f(name, is_dir, size_lo)) -- checked against the app's
+//            permissions first (guarded.rs); a refused path behaves like a missing one
+//   policy:  the app's permissions (apps/NAME/PERMISSIONS): install, the fs / process /
+//            url / plugin / print checks, grants for the user's files      (policy.rs)
 //   threads: thread_spawn(stack, f) -> Thread (join), thread_yield(), Sem (post / wait),
 //            wake() (any thread: E_WAKE on the UI thread), wait_events(deadline, on_event)
 //            (headless), cpu_count(), mem_total()
@@ -69,6 +72,10 @@ pub use rt::os::{exit, write_stderr, write_stdout};
 mod cpu;
 mod capabilities;
 pub use capabilities::*;
+/// The app's permissions (apps/NAME/PERMISSIONS) and their checks.
+pub mod policy;
+mod guarded;
+pub use guarded::*;
 mod control_stream;
 #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
 pub use control_stream::*;

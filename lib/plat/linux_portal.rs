@@ -1103,7 +1103,7 @@ impl Bus {
             Some(k) => {
                 self.name = copy_cap(&tmp[k + 1..], 256);
                 let dir = &tmp[..k];
-                if dir.first() == Some(&b'/') && crate::file_exists(&String::from_utf8_lossy(dir)) == 2 {
+                if dir.first() == Some(&b'/') && crate::file_exists_raw(&String::from_utf8_lossy(dir)) == 2 {
                     self.folder = copy_cap(dir, 512);
                 }
             }
@@ -1773,11 +1773,17 @@ pub fn file_dialog(flags: u32, path: &mut String, exts: &[&str]) -> (i32, u32) {
 
 /// show a folder / a file in the file manager (OpenURI.OpenDirectory) -> 0 / -1  [plat_open_folder]
 pub fn open_folder(path: &str) -> i32 {
+    if !crate::policy::fs_allowed(path, crate::policy::FS_READ) {
+        return -1;
+    }
     with_bus(|b| b.open_folder(path.as_bytes()))
 }
 
 /// a web page in the default application (OpenURI.OpenURI) -> 0 / -1  [plat_open_url]
 pub fn open_url(url: &str) -> i32 {
+    if !crate::policy::url_allowed(url) {
+        return -1;
+    }
     with_bus(|b| b.open_url(url.as_bytes()))
 }
 

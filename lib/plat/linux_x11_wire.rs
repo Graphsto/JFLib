@@ -538,7 +538,7 @@ impl X11 {
                 None => return,
             },
         };
-        let Some(d) = crate::read_file(&path) else { return };
+        let Some(d) = crate::read_file_raw(&path) else { return };
         let end = d.len();
         let mut p = 0usize;
         'rec: loop {

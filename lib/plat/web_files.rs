@@ -83,7 +83,7 @@ pub fn dev_ino(_path: &str) -> Option<(u64, u64)> {
     None
 }
 /// Readable virtual file, directory, or missing path; invalid names return None.
-pub fn file_exists_checked(name: &str) -> Option<u32> {
+pub(crate) fn file_exists_checked_raw(name: &str) -> Option<u32> {
     let name = path(name)?;
     let fs = FILES.lock();
     Some(if fs.entries.iter().any(|e| e.path == name) {
@@ -95,11 +95,11 @@ pub fn file_exists_checked(name: &str) -> Option<u32> {
     })
 }
 /// Existing virtual file (1), virtual directory (2), or absent/invalid name (0).
-pub fn file_exists(name: &str) -> u32 {
-    file_exists_checked(name).unwrap_or(0)
+pub(crate) fn file_exists_raw(name: &str) -> u32 {
+    file_exists_checked_raw(name).unwrap_or(0)
 }
 /// Create virtual parent directories; a colliding file causes failure.
-pub fn mkdir(name: &str) -> bool {
+pub(crate) fn mkdir_raw(name: &str) -> bool {
     let Some(name) = path(name) else {
         return false;
     };
@@ -118,7 +118,7 @@ pub fn mkdir(name: &str) -> bool {
     true
 }
 /// Delete one virtual file or an empty non-built-in virtual directory.
-pub fn delete(name: &str) -> bool {
+pub(crate) fn delete_raw(name: &str) -> bool {
     let Some(name) = path(name) else {
         return false;
     };
@@ -142,12 +142,12 @@ pub fn delete(name: &str) -> bool {
     }
 }
 /// Rename/replace a virtual file atomically inside this instance.
-pub fn rename(old: &str, new: &str) -> bool {
+pub(crate) fn rename_raw(old: &str, new: &str) -> bool {
     let (Some(old), Some(new)) = (path(old), path(new)) else {
         return false;
     };
     if old == new {
-        return file_exists(&old) == 1;
+        return file_exists_raw(&old) == 1;
     }
     let mut fs = FILES.lock();
     if builtin(&new) || fs.directories.contains(&new) {
@@ -163,11 +163,11 @@ pub fn rename(old: &str, new: &str) -> bool {
     true
 }
 /// Enumerate immediate children from a stable snapshot, without holding a lock in callbacks.
-pub fn dir_list(name: &str, f: &mut dyn FnMut(&str, bool, u32)) -> bool {
+pub(crate) fn dir_list_raw(name: &str, f: &mut dyn FnMut(&str, bool, u32)) -> bool {
     let Some(name) = path(name) else {
         return false;
     };
-    if file_exists(&name) != 2 {
+    if file_exists_raw(&name) != 2 {
         return false;
     }
     let prefix = if name == "/" {
@@ -206,16 +206,16 @@ pub fn dir_list(name: &str, f: &mut dyn FnMut(&str, bool, u32)) -> bool {
     true
 }
 /// Read a copy of a virtual file's bytes.
-pub fn read_file(name: &str) -> Option<Vec<u8>> {
-    let file = File::open(name, FO_READ)?;
+pub(crate) fn read_file_raw(name: &str) -> Option<Vec<u8>> {
+    let file = File::open_raw(name, FO_READ)?;
     Some(file.data.lock().bytes.clone())
 }
 /// Atomically replace a worker-local file. This does not claim persistent storage.
-pub fn write_file(name: &str, bytes: &[u8]) -> bool {
+pub(crate) fn write_file_raw(name: &str, bytes: &[u8]) -> bool {
     let Some(name) = path(name) else {
         return false;
     };
-    if bytes.len() > FILE_MAX || file_exists(&name) == 2 {
+    if bytes.len() > FILE_MAX || file_exists_raw(&name) == 2 {
         return false;
     }
     let mut copied = Vec::new();
@@ -247,13 +247,13 @@ pub struct File {
 }
 impl File {
     /// Open a virtual file with the standard FO_READ/FO_WRITE/FO_RW contract.
-    pub fn open(name: &str, mode: u32) -> Option<Self> {
+    pub(crate) fn open_raw(name: &str, mode: u32) -> Option<Self> {
         let name = path(name)?;
-        if mode > FO_RW || file_exists(&name) == 2 {
+        if mode > FO_RW || file_exists_raw(&name) == 2 {
             return None;
         }
-        if mode == FO_WRITE || (mode == FO_RW && file_exists(&name) == 0) {
-            if !write_file(&name, &[]) {
+        if mode == FO_WRITE || (mode == FO_RW && file_exists_raw(&name) == 0) {
+            if !write_file_raw(&name, &[]) {
                 return None;
             }
         }
@@ -265,13 +265,13 @@ impl File {
         })
     }
     /// Create a virtual scratch file that is removed when this handle is dropped.
-    pub fn open_temp(directory: Option<&str>) -> Option<Self> {
+    pub(crate) fn open_temp_raw(directory: Option<&str>) -> Option<Self> {
         let name = format!(
             "{}/jfgui-{}.tmp",
             directory.unwrap_or("/tmp"),
             TEMP.fetch_add(1, Ordering::Relaxed)
         );
-        let mut file = Self::open(&name, FO_WRITE)?;
+        let mut file = Self::open_raw(&name, FO_WRITE)?;
         file.temporary = Some(name);
         Some(file)
     }
@@ -318,7 +318,7 @@ impl File {
 impl Drop for File {
     fn drop(&mut self) {
         if let Some(name) = &self.temporary {
-            let _ = delete(name);
+            let _ = delete_raw(name);
         }
     }
 }
@@ -329,7 +329,7 @@ pub struct FileLock {
 }
 impl FileLock {
     /// Acquire a lock until Drop; this is not an inter-tab or operating-system lock.
-    pub fn acquire(name: &str) -> Option<Self> {
+    pub(crate) fn acquire_raw(name: &str) -> Option<Self> {
         let name = path(name)?;
         let mut fs = FILES.lock();
         if fs.locks.contains(&name) {

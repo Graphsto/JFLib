@@ -942,7 +942,7 @@ impl UnixListener {
     /// listen on a socket file; one left over at `path` is removed first
     pub fn bind(path: &str) -> NetResult<UnixListener> {
         let a = unix_addr(path)?;
-        crate::delete(path);
+        crate::delete_raw(path);
         let s = Sock(sys::socket(AF_UNIX, 1, 0)?);
         sys::bind_to(s.0, &a)?;
         sys::listen_on(s.0, 64)?;
@@ -971,7 +971,7 @@ impl UnixListener {
 
 impl Drop for UnixListener {
     fn drop(&mut self) {
-        crate::delete(&self.path);
+        crate::delete_raw(&self.path);
     }
 }
 
@@ -1036,7 +1036,7 @@ pub fn hostname() -> String {
     }
     #[cfg(target_os = "linux")]
     {
-        crate::read_file("/proc/sys/kernel/hostname")
+        crate::read_file_raw("/proc/sys/kernel/hostname")
             .map(|b| String::from(String::from_utf8_lossy(&b).trim()))
             .filter(|s| !s.is_empty())
             .unwrap_or_else(|| String::from("localhost"))

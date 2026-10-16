@@ -61,6 +61,7 @@ mod layout;
 mod list;
 mod notify;
 mod office_gallery;
+mod perm;
 mod popup;
 mod ribbon;
 mod shell;
@@ -89,6 +90,7 @@ pub use edit::TextboxPresentation;
 pub use edit::TextSurfaceLine;
 pub use keys::*;
 pub use layout::{dp_at, px2dip_at};
+pub use perm::permissions;
 pub use popup::{Command, Mi}; // ui-popup: the command table and menu records
 pub use ribbon::{RibbonGroup, RibbonGroupMode, RibbonLayout, RibbonMetrics, RibbonSample};
 pub use runtime::{Runtime, launch, run};
@@ -106,13 +108,17 @@ pub use value::{cvtd, deg_atan2, deg_sincos, grad_at, part_id, px_mix, RangeF, T
 
 /// the app's entry point: `ui::main!(ui::run(&DESC, &mut MyApp::default(), &style::STYLE));`
 /// (expands to the `jfgui_main` symbol the platform entry calls; the app crate denies
-/// unsafe code, this one item is the exception)
+/// unsafe code, this one item is the exception).  It first installs the app's permissions
+/// (apps/NAME/PERMISSIONS, which build_rs.py passes as JFGUI_PERMISSIONS; perm.rs).
 #[macro_export]
 macro_rules! main {
     ($body:expr) => {
         #[allow(unsafe_code)]
         #[unsafe(no_mangle)]
         fn jfgui_main() -> i32 {
+            if let Err(code) = $crate::permissions(option_env!("JFGUI_PERMISSIONS")) {
+                return code;
+            }
             $body
         }
     };

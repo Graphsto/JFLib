@@ -32,6 +32,9 @@ fn env_is_1(name: &str) -> bool {
 /// print one image on one page (see the file header)  [plat_print]
 pub fn print(job: &mut PrintJob) -> i32 {
     job.copies = 0;
+    if !crate::policy::print_allowed() {
+        return ERR_UNSUPPORTED;
+    }
     if job.src.is_none() {
         return ERR_DIMS;
     }
@@ -46,7 +49,7 @@ pub fn print(job: &mut PrintJob) -> i32 {
             Ok(p) => p,
             Err(e) => return e,
         };
-        if !crate::write_file(&to, &pdf) {
+        if !crate::write_file_raw(&to, &pdf) {
             return ERR_IO;
         }
         job.copies = 1;

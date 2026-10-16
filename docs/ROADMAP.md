@@ -6,7 +6,7 @@ steht es unter „Vorhanden“, damit klar ist, worauf aufgebaut werden kann.
 
 **Priorität:** **P1** = ohne das ist eine GUI-Library nicht vollwertig · **P2** = wird
 erwartet · **P3** = optional / später
-**Status:** *fehlt* · *teilweise* (Basis vorhanden) · *in Arbeit*
+**Status:** *fehlt* · *teilweise* (Basis vorhanden) · *in Arbeit* · *erledigt*
 
 Bekannte Grundgrenzen (Entscheidung „kein libc“): kein GPU-Rendering, kein fontconfig,
 keine Barrierefreiheits-Schnittstelle (UIA / AT-SPI). Sie stehen unten mit in der Liste,
@@ -17,16 +17,22 @@ damit die Liste vollständig ist.
 ## 1. Berechtigungen und Sicherheit (wie bei Tauri)
 
 Vorhanden: [`plat/capabilities.rs`](../lib/plat/capabilities.rs) meldet, welche Dienste der
-Host bietet (13 `CAP_*`-Bits). Nativ sind immer alle gesetzt; es gibt keine Regeln, keine
-Scopes und keine Durchsetzung.
+Host bietet (13 `CAP_*`-Bits). Seit Paket 1 (2026-10-16) gibt es das Manifest
+`apps/NAME/PERMISSIONS` ([PERMISSIONS.md](PERMISSIONS.md),
+[`plat/policy.rs`](../lib/plat/policy.rs), [`ui/perm.rs`](../lib/ui/perm.rs)).
 
-- **P1** · *fehlt* · Berechtigungs-Manifest pro App (z. B. `apps/NAME/PERMISSIONS` neben
-  `TARGETS` / `STYLE`); `build_rs.py` prüft es, die Laufzeit setzt es durch.
-- **P1** · *fehlt* · Scopes: Dateien nur unter erlaubten Pfaden (`$APPDATA`, `$DOCUMENTS`,
-  vom Nutzer gewählte Dateien), Netz nur zu erlaubten Hosts, Prozessstart nur für erlaubte
-  Programme, `open_url` nur für erlaubte Schemes.
-- **P1** · *fehlt* · Zentrale Durchsetzung in `plat` (fs, net, process, shell) statt in jeder
-  App; abgelehnte Zugriffe ins Audit-Log.
+- **P1** · *erledigt* · Berechtigungs-Manifest pro App (`apps/NAME/PERMISSIONS` neben
+  `TARGETS` / `STYLE`); `build_rs.py` prüft es, `ui::main!` installiert es, `plat` setzt es
+  durch. Ohne Datei bleibt alles erlaubt.
+- **P1** · *teilweise* · Scopes: Dateien unter Mustern mit `$CONFIG` / `$TEMP` / `$HOME` /
+  `$EXE` / `$FONTS`, vom Nutzer gewählte Dateien (`fs.user`: Dialog, Drop, Kommandozeile),
+  Prozesse, `open_url`-Schemes, Plugins und Drucken sind fertig. Es fehlt noch: Netz nur zu
+  erlaubten Hosts / Ports (`plat::net`, `netio` mit eigenem DNS; Paket 2).
+- **P1** · *teilweise* · Zentrale Durchsetzung in `plat` (Dateien, `fs.rs`, Prozesse, Shell,
+  Plugins, Drucken) statt in jeder App; Verweigerungen als `PERMDENY` auf stderr und in
+  `plat::policy::denials()`, `capabilities()` blendet verweigerte Dienste aus. Es fehlt
+  noch: Netz (Paket 2); Programme aus `BINS`, `rt::main!`-Konsolenprogramme und Android
+  bekommen das Manifest noch nicht.
 - **P2** · *fehlt* · Laufzeit-Rückfragen („App möchte auf … zugreifen“) mit gespeicherter
   Entscheidung und Widerruf in den Einstellungen.
 - **P2** · *fehlt* · Sicherer Speicher für Geheimnisse: Windows Credential Manager / DPAPI,
@@ -55,8 +61,10 @@ Browser), [`plat/fs.rs`](../lib/plat/fs.rs) (direkter OS-Zugriff),
   Darauf bauen die Scopes aus Abschnitt 1 auf.
 - **P1** · *fehlt* · Assets beim Build bündeln: Ordner einbetten, mit `lib/compress` packen,
   per Hash versionieren. Heute von Hand (`*.bin`, `icons_data.rs`).
-- **P1** · *fehlt* · Pfade normalisieren und `..`-Ausbrüche verhindern (Voraussetzung für
-  Scopes).
+- **P1** · *erledigt* · Pfade normalisieren und `..`-Ausbrüche verhindern
+  (`plat::policy::normalize`: Windows-Präfixe, UNC, Laufwerke, Geräte- und Stream-Namen;
+  unter Linux wird `..` abgelehnt, weil der Kernel es erst nach Symlinks anwendet). Die
+  Prüfung ist lexikalisch: Symlinks in erlaubten Ordnern können noch hinausführen.
 - **P2** · *teilweise* · Alle Standardordner: `cache_dir`, `data_dir`, `log_dir`, Dokumente,
   Downloads, Bilder (XDG-Benutzerordner, Known Folders). Heute gibt es `config_dir`,
   `temp_dir`, `home`; `win_inst::known_folder` nur für den Installer.

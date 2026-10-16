@@ -300,39 +300,11 @@ impl FontDb {
         true
     }
 
-    // push the font folders onto the work stack  [fd_roots]
+    // push the font folders onto the work stack (plat::policy::font_dirs: the same folders
+    // the app's permissions always let it read), the first one on top  [fd_roots]
     fn roots(ws: &mut Vec<(String, u32)>) {
-        if let Some(v) = plat::env("jfgui_FONTDIRS").filter(|v| !v.is_empty()) {
-            // split at ';' (Linux also ':'), push in reverse so the first is scanned first
-            let sep = |c: char| c == ';' || (cfg!(target_os = "linux") && c == ':');
-            let items: Vec<&str> = v.split(sep).collect();
-            for it in items.iter().rev() {
-                if !it.is_empty() {
-                    ws.push((String::from(*it), 0));
-                }
-            }
-            return;
-        }
-        let push_env = |ws: &mut Vec<(String, u32)>, var: &str, suffix: &str| -> bool {
-            match plat::env(var).filter(|v| !v.is_empty()) {
-                Some(mut v) => {
-                    v.push_str(suffix);
-                    ws.push((v, 0));
-                    true
-                }
-                None => false,
-            }
-        };
-        if cfg!(windows) {
-            push_env(ws, "LOCALAPPDATA", "/Microsoft/Windows/Fonts");
-            push_env(ws, "WINDIR", "/Fonts");
-        } else {
-            push_env(ws, "HOME", "/.fonts");
-            if !push_env(ws, "XDG_DATA_HOME", "/fonts") {
-                push_env(ws, "HOME", "/.local/share/fonts");
-            }
-            ws.push((String::from("/usr/local/share/fonts"), 0));
-            ws.push((String::from("/usr/share/fonts"), 0));
+        for d in plat::policy::font_dirs().into_iter().rev() {
+            ws.push((d, 0));
         }
     }
 

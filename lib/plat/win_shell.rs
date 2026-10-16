@@ -86,7 +86,7 @@ fn dry_run() -> bool {
 
 /// a web page (http / https / mailto ...) in the default application -> 0 / -1
 pub fn open_url(url: &str) -> i32 {
-    if url.is_empty() {
+    if url.is_empty() || !crate::policy::url_allowed(url) {
         return -1;
     }
     if dry_run() {
@@ -98,7 +98,7 @@ pub fn open_url(url: &str) -> i32 {
 
 /// show a folder (or a file selected in its folder) in the file manager -> 0 / -1
 pub fn open_folder(path: &str) -> i32 {
-    if path.is_empty() {
+    if path.is_empty() || !crate::policy::fs_allowed(path, crate::policy::FS_READ) {
         return -1;
     }
     // UTF-8 -> UTF-16 with backslashes

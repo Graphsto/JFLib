@@ -66,6 +66,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from tools.project_sources import SourceError, entrypoint, project_sources, resolve_root
 from tools.host_exec import run_native
+from tools import assetpack
 
 ROOT = Path(__file__).resolve().parent              # RustLib/
 RS = ROOT
@@ -78,13 +79,13 @@ UNSAFE_OK = {"rt", "simd", "plat", "plugin"}
 LIBS = {
     "rt": ("lib/rt/lib.rs", []),
     "agent_core": ("lib/agent_core/src/lib.rs", ["rt"]),
-    "plat": ("lib/plat/lib.rs", ["rt"]),
+    "plat": ("lib/plat/lib.rs", ["rt", "compress"]),          # vfs: LZ4 of the app:// bundles
     "base": ("lib/base/lib.rs", ["rt", "plat"]),
     "agent_io": ("lib/agent_io/src/lib.rs", ["rt", "plat", "agent_core"]),
     "simd": ("lib/simd/lib.rs", ["rt"]),
     "gfx": ("lib/gfx/lib.rs", ["rt", "simd"]),
     "img_core": ("lib/img_core/lib.rs", ["rt", "simd", "gfx"]),
-    "archive": ("lib/archive/lib.rs", ["rt", "img_core"]),
+    "archive": ("lib/archive/lib.rs", ["rt", "img_core", "plat"]),  # vfs: ZipFs
     "doc_core": ("lib/doc_core/lib.rs", ["rt", "base"]),
     "doc_layout": ("lib/doc_layout/lib.rs", ["rt", "doc_core"]),
     "doc_io": ("lib/doc_io/lib.rs", ["rt", "base", "plat", "archive", "doc_core"]),
@@ -378,7 +379,7 @@ def app_targets(name):
 # it at start-up.  Without the file the app may do everything (as before).
 PERM_KEYS_ARGS = ("fs.read", "fs.write", "process", "plugins", "url", "net.connect", "net.listen")
 PERM_KEYS_FLAG = ("fs.user", "print")
-PERM_VARS = ("CONFIG", "TEMP", "HOME", "EXE", "FONTS")
+PERM_VARS = ("CONFIG", "TEMP", "HOME", "EXE", "FONTS", "APPCONFIG", "APPDATA", "APPCACHE")
 
 
 def perm_pattern_error(a):
@@ -463,6 +464,23 @@ def app_permissions(name):
             raise BuildError(f"{where}:{i}: unknown permission {key} "
                              f"({', '.join(PERM_KEYS_ARGS[:2] + PERM_KEYS_FLAG[:1] + PERM_KEYS_ARGS[2:] + PERM_KEYS_FLAG[1:])})")
     return text
+
+
+# ---------------------------------------------------------------- assets
+# apps/NAME/assets: the app's files, packed by tools/assetpack.py (JFA1, LZ4) and built into
+# the program; ui::main! mounts them as app:// (lib/plat/vfs.rs, docs/VFS.md).
+
+
+def app_assets_hash(name):
+    """a digest of apps/NAME/assets (names and contents), or None without the folder"""
+    d = ROOT / "apps" / name / "assets"
+    if not d.is_dir():
+        return None
+    h = hashlib.sha1()
+    for rel, path in sorted(assetpack.collect(d).items()):
+        h.update(rel.encode("utf-8") + b"\0")
+        h.update(path.read_bytes())
+    return h.hexdigest()
 
 
 def app_style(name):
@@ -750,9 +768,11 @@ class Builder:
             return build_apk(self, name, style, variant, root, crates, run_cmd)
         lto = self.profile["lto"] if self.release and self.profile else "fat"      # r13-measure
         perms = app_permissions(name)                     # permissions: the app's manifest
+        assets = app_assets_hash(name)                    # vfs: apps/NAME/assets -> app://
         digest = self.src_hash(root, deps, extra=style + ("" if lto == "fat" else f" lto={lto}")
                                + (" wasm-variant-link-v1" if self.target == "web" else "")
-                               + ("" if perms is None else " permissions=" + perms))
+                               + ("" if perms is None else " permissions=" + perms)
+                               + ("" if assets is None else " assets=" + assets))
         key = "app_" + name + (f"@{style}" if variant else "")
         vdir = self.dir / style if variant else self.dir
         if self.target == "web":
@@ -786,6 +806,13 @@ class Builder:
             cmd += ["--extern", f"{d}={self.rlib(d)}"]
         cmd += ["--extern", f"style={self.rlib(scrate)}"]
         cmd += self.native_link_args(name, exe, "WINDOWS")
+        env = {"JFGUI_PERMISSIONS": perms, "JFGUI_APP": name, "JFGUI_ASSETS": None}
+        if assets is not None:
+            jfa = self.dir / "assets" / f"{name}.jfa"
+            jfa.parent.mkdir(parents=True, exist_ok=True)
+            jfa.write_bytes(assetpack.pack(ROOT / "apps" / name / "assets"))
+            cmd += ["--cfg", "jfgui_assets"]
+            env["JFGUI_ASSETS"] = str(jfa.resolve())
         # rustc's temporary object filenames use the crate name, not all output
         # suffixes. Separate link directories prevent simultaneous variants from
         # overwriting each other's objects before publishing the final WASM.
@@ -793,7 +820,7 @@ class Builder:
         linked = link_root / name / exe.name if self.target == "web" else exe
         linked.parent.mkdir(parents=True, exist_ok=True)
         cmd += ["-o", linked, root]
-        run_cmd(cmd, env={"JFGUI_PERMISSIONS": perms})
+        run_cmd(cmd, env=env)
         if linked != exe:
             shutil.copyfile(linked, exe)
         pdb = vdir / f"{name}.pdb"                # only this app's (paint* would match PaintCraft's too)
@@ -848,7 +875,7 @@ class Builder:
             cmd += ["--extern", f"style={self.rlib(f'style_{style}')}"]
         cmd += self.native_link_args(app, exe, "WINDOWS" if kind == "gui" else "CONSOLE")
         cmd += ["-o", exe, root]
-        run_cmd(cmd, env={"JFGUI_PERMISSIONS": None})    # permissions: only the app's main exe
+        run_cmd(cmd, env={"JFGUI_PERMISSIONS": None, "JFGUI_ASSETS": None, "JFGUI_APP": app})  # only the main exe gets them
         pdb = self.dir / f"{name}.pdb"
         if pdb.exists():
             pdb.unlink()

@@ -57,7 +57,7 @@ Not listed here: `simd` (the SSE2 / AVX2 kernel layer, see `README.md`, "SIMD ke
 - [fx](#fx) -- effects and adjustments
   <br>[lib.rs](#fx-crate-root) · [adj.rs](#fxadjrs) · [artistic.rs](#fxartisticrs) · [enhance.rs](#fxenhancers) · [blur.rs](#fxblurrs) · [color.rs](#fxcolorrs) · [conv.rs](#fxconvrs) · [distort.rs](#fxdistortrs) · [hist.rs](#fxhistrs) · [lochist.rs](#fxlochistrs) · [lut.rs](#fxlutrs) · [noise.rs](#fxnoisers) · [object.rs](#fxobjectrs) · [perlin.rs](#fxperlinrs) · [photo.rs](#fxphotors) · [render.rs](#fxrenderrs) · [stylize.rs](#fxstylizers) · [warp.rs](#fxwarprs)
 - [plat](#plat) -- the platform layer: process, files, threads, windows (Windows and Linux)
-  <br>[lib.rs](#plat-crate-root) · [process.rs](#platprocessrs) · [process_win.rs (Windows)](#platprocess_winrs-windows) · [process_linux.rs (Linux)](#platprocess_linuxrs-linux) · [sync.rs](#platsyncrs) · [net.rs](#platnetrs) · [fs.rs](#platfsrs) · [service.rs](#platservicers) · [watch.rs](#platwatchrs) · [certs.rs](#platcertsrs) · [rand.rs](#platrandrs) · [cpu.rs](#platcpurs) · [capabilities.rs](#platcapabilitiesrs) · [policy.rs](#platpolicyrs) · [guarded.rs](#platguardedrs) · [control_stream.rs](#platcontrol_streamrs) · [control_ipc_win.rs (Windows)](#platcontrol_ipc_winrs-windows) · [control_ipc_linux.rs (Linux)](#platcontrol_ipc_linuxrs-linux) · [pool.rs](#platpoolrs) · [win.rs (Windows)](#platwinrs-windows) · [win_api.rs (Windows)](#platwin_apirs-windows) · [win_clip.rs (Windows)](#platwin_cliprs-windows) · [win_filedlg.rs (Windows)](#platwin_filedlgrs-windows) · [win_pen.rs (Windows)](#platwin_penrs-windows) · [win_popup.rs (Windows)](#platwin_popuprs-windows) · [win_shell.rs (Windows)](#platwin_shellrs-windows) · [win_test.rs (Windows)](#platwin_testrs-windows) · [win_inst.rs (Windows)](#platwin_instrs-windows) · [win_sys.rs (Windows)](#platwin_sysrs-windows) · [win_thread.rs (Windows)](#platwin_threadrs-windows) · [win_print.rs (Windows)](#platwin_printrs-windows) · [win_lib.rs (Windows)](#platwin_librs-windows) · [linux.rs (Linux)](#platlinuxrs-linux) · [linux_disp.rs (Linux)](#platlinux_disprs-linux) · [linux_wl.rs (Linux)](#platlinux_wlrs-linux) · [linux_xkb.rs (Linux)](#platlinux_xkbrs-linux) · [linux_x11.rs (Linux)](#platlinux_x11rs-linux) · [linux_portal.rs (Linux)](#platlinux_portalrs-linux) · [linux_sys.rs (Linux)](#platlinux_sysrs-linux) · [linux_thread.rs (Linux)](#platlinux_threadrs-linux) · [linux_print.rs (Linux)](#platlinux_printrs-linux) · [linux_elfload.rs (Linux)](#platlinux_elfloadrs-linux) · [web.rs](#platwebrs) · [web_files.rs](#platweb_filesrs) · [web_windows.rs](#platweb_windowsrs) · [android_ime.rs](#platandroid_imers) · [web_threads.rs](#platweb_threadsrs) · [clipdrop.rs](#platclipdroprs) · [cliprich.rs](#platcliprichrs) · [consts.rs](#platconstsrs) · [evq.rs](#platevqrs) · [ime.rs](#platimers) · [icc.rs](#platiccrs) · [pwin0.rs](#platpwin0rs) · [plib.rs](#platplibrs) · [print.rs](#platprintrs) · [modhost.rs](#platmodhostrs) · [modabi.rs](#platmodabirs)
+  <br>[lib.rs](#plat-crate-root) · [process.rs](#platprocessrs) · [process_win.rs (Windows)](#platprocess_winrs-windows) · [process_linux.rs (Linux)](#platprocess_linuxrs-linux) · [sync.rs](#platsyncrs) · [net.rs](#platnetrs) · [fs.rs](#platfsrs) · [service.rs](#platservicers) · [watch.rs](#platwatchrs) · [certs.rs](#platcertsrs) · [rand.rs](#platrandrs) · [cpu.rs](#platcpurs) · [capabilities.rs](#platcapabilitiesrs) · [policy.rs](#platpolicyrs) · [vfs.rs](#platvfsrs) · [guarded.rs](#platguardedrs) · [control_stream.rs](#platcontrol_streamrs) · [control_ipc_win.rs (Windows)](#platcontrol_ipc_winrs-windows) · [control_ipc_linux.rs (Linux)](#platcontrol_ipc_linuxrs-linux) · [pool.rs](#platpoolrs) · [win.rs (Windows)](#platwinrs-windows) · [win_api.rs (Windows)](#platwin_apirs-windows) · [win_clip.rs (Windows)](#platwin_cliprs-windows) · [win_filedlg.rs (Windows)](#platwin_filedlgrs-windows) · [win_pen.rs (Windows)](#platwin_penrs-windows) · [win_popup.rs (Windows)](#platwin_popuprs-windows) · [win_shell.rs (Windows)](#platwin_shellrs-windows) · [win_test.rs (Windows)](#platwin_testrs-windows) · [win_inst.rs (Windows)](#platwin_instrs-windows) · [win_sys.rs (Windows)](#platwin_sysrs-windows) · [win_thread.rs (Windows)](#platwin_threadrs-windows) · [win_print.rs (Windows)](#platwin_printrs-windows) · [win_lib.rs (Windows)](#platwin_librs-windows) · [linux.rs (Linux)](#platlinuxrs-linux) · [linux_disp.rs (Linux)](#platlinux_disprs-linux) · [linux_wl.rs (Linux)](#platlinux_wlrs-linux) · [linux_xkb.rs (Linux)](#platlinux_xkbrs-linux) · [linux_x11.rs (Linux)](#platlinux_x11rs-linux) · [linux_portal.rs (Linux)](#platlinux_portalrs-linux) · [linux_sys.rs (Linux)](#platlinux_sysrs-linux) · [linux_thread.rs (Linux)](#platlinux_threadrs-linux) · [linux_print.rs (Linux)](#platlinux_printrs-linux) · [linux_elfload.rs (Linux)](#platlinux_elfloadrs-linux) · [web.rs](#platwebrs) · [web_files.rs](#platweb_filesrs) · [web_windows.rs](#platweb_windowsrs) · [android_ime.rs](#platandroid_imers) · [web_threads.rs](#platweb_threadsrs) · [clipdrop.rs](#platclipdroprs) · [cliprich.rs](#platcliprichrs) · [consts.rs](#platconstsrs) · [evq.rs](#platevqrs) · [ime.rs](#platimers) · [icc.rs](#platiccrs) · [pwin0.rs](#platpwin0rs) · [plib.rs](#platplibrs) · [print.rs](#platprintrs) · [modhost.rs](#platmodhostrs) · [modabi.rs](#platmodabirs)
 - [base](#base) -- UTF-8, command line, settings files, numbers and text
   <br>[lib.rs](#base-crate-root) · [ini.rs](#baseinirs) · [encoding.rs](#baseencodingrs) · [xml.rs](#basexmlrs) · [num.rs](#basenumrs)
 - [datetime](#datetime) -- timestamps, civil dates, RFC 3339, IANA time zones with DST, cron schedules
@@ -161,8 +161,10 @@ Source: [`lib/ui/lib.rs`](../lib/ui/lib.rs)
 - **`main!(...)`**
   the app's entry point: `ui::main!(ui::run(&DESC, &mut MyApp::default(), &style::STYLE));`
   (expands to the `jfgui_main` symbol the platform entry calls; the app crate denies
-  unsafe code, this one item is the exception).  It first installs the app's permissions
-  (apps/NAME/PERMISSIONS, which build_rs.py passes as JFGUI_PERMISSIONS; perm.rs).
+  unsafe code, this one item is the exception).  It first sets up what build_rs.py built in
+  (perm.rs): the app's name for its folders (JFGUI_APP), its assets as app://
+  (apps/NAME/assets, packed to JFGUI_ASSETS with --cfg jfgui_assets) and its permissions
+  (apps/NAME/PERMISSIONS as JFGUI_PERMISSIONS).
 
 - **`struct AppDesc`**
   the app descriptor (APP_DESC): title, AF_\* flags, sizes in DIP, accent 0xRRGGBB.  Write
@@ -3892,13 +3894,15 @@ This is a visual chooser, independent of an application's document commands or f
 Source: [`lib/ui/perm.rs`](../lib/ui/perm.rs)
 
 ```text
-perm -- the app's permissions on the UI side (plat::policy, docs/PERMISSIONS.md): the
-manifest built into the app, the files the user hands over and the library's own file use
+perm -- what build_rs.py builds into an app, set up before it starts, and the app's
+permissions on the UI side (plat::policy, docs/PERMISSIONS.md, docs/VFS.md)
 
-  permissions(manifest)   (main!) install apps/NAME/PERMISSIONS, which build_rs.py passes
-                          as JFGUI_PERMISSIONS; Err(exit code) for a manifest it refuses.
-                          The paths on the command line come from the user: with fs.user
-                          they may be read and written (folders with everything below).
+  boot(app, manifest, assets)   (main!) the app's name for its folders (plat::vfs::
+                          set_app_id), its asset bundle as app:// (JFA1, apps/NAME/assets),
+                          then its manifest (apps/NAME/PERMISSIONS); Err(exit code) for a
+                          bundle or manifest it refuses.  The paths on the command line come
+                          from the user: with fs.user they may be read and written (folders
+                          with everything below).
   grant_user(path)        the same for a path of the file dialog or a drop
   trusted(f)              f on this thread without file checks: the library's own file
                           dialog lists folders, scripts read and write their files
@@ -3906,8 +3910,8 @@ manifest built into the app, the files the user hands over and the library's own
 The key of plat::policy stays here: apps cannot widen their own permissions.
 ```
 
-- **`fn permissions(manifest: Option<&str>) -> Result<(), i32>`**
-  (main!) install the app's manifest (None: the app has none, everything stays allowed)
+- **`fn boot(app: Option<&str>, manifest: Option<&str>, assets: &'static [u8]) -> Result<(), i32>`**
+  (main!) set up the app: its name, its assets (app://), its permissions
 
 #### `ui/ribbon.rs`
 
@@ -10619,6 +10623,9 @@ plat -- the platform layer: one module per OS with the same functions  [src/plat
            permissions first (guarded.rs); a refused path behaves like a missing one
   policy:  the app's permissions (apps/NAME/PERMISSIONS): install, the fs / process /
            url / plugin / print checks, grants for the user's files      (policy.rs)
+  vfs:     "scheme://path" names in every file function: app:// (the bundled assets),
+           config:// data:// cache:// (the app's folders), mem://, mounted providers
+           (MemFs, DirFs, Overlay, Sub, Bundle); data_dir(), cache_dir()   (vfs.rs)
   threads: thread_spawn(stack, f) -> Thread (join), thread_yield(), Sem (post / wait),
            wake() (any thread: E_WAKE on the UI thread), wait_events(deadline, on_event)
            (headless), cpu_count(), mem_total()
@@ -11380,11 +11387,13 @@ Manifest: one rule per line, '#' starts a comment, a key may repeat:
                         address, a block, localhost or *; 0.0.0.0 / [::] = every interface)
                         and PORT (port 0 = any free one: the rule needs 0 or *)
 A PATTERN is an absolute path (X:/.. and //server/share/.. count on Windows only, /.. on
-Linux only), or starts with $CONFIG $TEMP $HOME $EXE $FONTS (a variable without a value
-drops the pattern); '*' / '?' match inside one segment, a '**' segment any
-number of segments ("dir/**" also matches dir itself); "**" alone matches every path.
-Windows compares without case.  Always readable: the font folders, the exe folder and on
-Linux /etc/resolv.conf and /etc/hosts (netio's resolver).
+Linux only), or starts with $CONFIG $TEMP $HOME $EXE $FONTS or the app's own folders
+$APPCONFIG $APPDATA $APPCACHE (vfs::app_dir; a variable without a value drops the
+pattern); '*' / '?' match inside one segment, a '**' segment any number of segments
+("dir/**" also matches dir itself); "**" alone matches every path.  Windows compares
+without case.  Always readable: the font folders, the exe folder and on Linux
+/etc/resolv.conf and /etc/hosts (netio's resolver); always writable: the app's own
+folders (config://, data://, cache://; vfs::set_app_id comes first).
 
 The checks are lexical: a symbolic link inside an allowed folder can point outside it.  On
 Linux a path with a ".." segment is refused: "allowed/link/../x" would leave the folder.
@@ -11474,16 +11483,181 @@ DENIALS_MAX: usize = 64
   whether pattern (manifest syntax after variables) matches path; both normalised with the
   rules of this OS (tests)
 
+### `plat/vfs.rs`
+
+Source: [`lib/plat/vfs.rs`](../lib/plat/vfs.rs)
+
+```text
+vfs -- one file namespace on every platform: "scheme://path" reaches a mounted provider,
+every other name is a path of the OS (or of the browser's virtual files)
+
+  mount(scheme, provider) / unmount(scheme) -> bool / mounted(scheme) -> bool
+  provider(scheme) -> Option<Arc<dyn Provider>>   a mount's provider (to build an Overlay or
+                               a Sub of app://, for example)
+  route(name) -> Route         Os (no scheme), Vfs(provider, path) or Bad (a scheme name
+                               with ".." or an invalid scheme); "config:/" and "config:" are
+                               the root like "config://"
+  os_path(name) -> Option<String>   the OS path behind a name of a folder mount (for APIs
+                               that need a real file); an OS path comes back unchanged
+  app_id() / set_app_id(id)    the name of the app's own folders (build_rs.py: the app's
+                               folder name; else the exe's name)
+  app_dir(APP_CONFIG | APP_DATA | APP_CACHE) -> Option<String>   the app's own folders:
+                               Windows %APPDATA%/<id>, %LOCALAPPDATA%/<id>,
+                               %LOCALAPPDATA%/<id>/Cache; Linux the XDG config / data /
+                               cache homes + /<id>; browser /config, /data, /cache + /<id>
+  Built in, mounted on first use: mem:// (one MemFs per process), config://, data://,
+  cache:// (DirFs on app_dir), app:// (the app's bundle; ui::main! installs it, else empty)
+  Providers: MemFs, DirFs::new(root), Overlay::new(layers), Sub::new(provider, folder),
+  Bundle::new(bytes) (JFA1, tools/assetpack.py); archive::ZipFs (lib/archive)
+  pack_bundle(files) -> Vec<u8>    a JFA1 bundle (tests, tools; build_rs.py packs with
+                               tools/assetpack.py)
+
+The public file functions (guarded.rs) route names with a scheme here: read_file,
+write_file, file_exists(_checked), mkdir, delete, rename (inside one mount) and dir_list;
+File::open, File::open_temp and FileLock::acquire work for folder mounts (os_path).  Paths
+inside a mount use '/', have no "." or empty segments and never "..".  Writes create
+missing folders.  DirFs uses the checked OS functions, so the app's permissions apply to
+it; the app's own folders are always allowed (policy.rs).
+
+JFA1 bundle (little endian): "JFA1", u32 count, u32 names_len; count entries of 20 bytes
+sorted by name: u32 name_off, u16 name_len, u8 codec (0 stored, 1 LZ4 block), u8 0,
+u32 data_off (from the bundle start), u32 stored_len, u32 size; the names; the data.
+```
+
+```rust
+/// app_dir: the app's settings folder (config://)
+APP_CONFIG: u32 = 0
+/// app_dir: the app's data folder (data://)
+APP_DATA: u32 = 1
+/// app_dir: the app's cache folder (cache://)
+APP_CACHE: u32 = 2
+```
+
+- **`trait Provider: Send + Sync`**
+  A file tree behind a scheme.  Paths are relative ("" is the root), '/' separated and
+  normalised by route().
+  - `fn kind(&self, path: &str) -> u32`
+    0 missing, 1 file, 2 folder
+  - `fn read(&self, path: &str) -> Option<Vec<u8>>`
+    the whole file
+  - `fn list(&self, path: &str, f: &mut dyn FnMut(&str, bool, u64)) -> bool`
+    f(name, is_dir, size) for every entry of a folder -> false when it is no folder
+  - `fn write(&self, _path: &str, _data: &[u8]) -> bool`
+    replace or create a file (missing folders are created)
+  - `fn mkdir(&self, _path: &str) -> bool`
+    create a folder and its parents (an existing folder is fine)
+  - `fn delete(&self, _path: &str) -> bool`
+    a file or an empty folder
+  - `fn rename(&self, _old: &str, _new: &str) -> bool`
+    a file to another name (replacing it)
+  - `fn os_path(&self, _path: &str) -> Option<String>`
+    the OS path of path (folder mounts only)
+
+- **`enum Route`**
+  where a name leads
+  - `Os` -- no scheme: a path of the OS
+  - `Vfs(Arc<dyn Provider>, String)` -- a mounted provider and the path inside it
+  - `Bad` -- a scheme name that cannot be used (".." or no such mount)
+
+- **`fn mount(scheme: &str, provider: Arc<dyn Provider>) -> bool`**
+  mount provider under scheme (lower-case letters, digits, '+', '-', '.'; at least two
+  characters); replaces an earlier mount -> false for an invalid scheme
+
+- **`fn unmount(scheme: &str) -> bool`**
+  remove a mount -> whether there was one
+
+- **`fn mounted(scheme: &str) -> bool`**
+  whether scheme is mounted (the built-in schemes count once they were used)
+
+- **`fn clean(path: &str) -> Option<String>`**
+  the normalised path inside a mount ('\\' -> '/', no "." / empty segments) or None (a "..")
+
+- **`fn route(name: &str) -> Route`**
+  where name leads (built-in schemes are mounted on first use)
+
+- **`fn provider(scheme: &str) -> Option<Arc<dyn Provider>>`**
+  the provider mounted under scheme (built-in schemes are mounted on first use)
+
+- **`fn os_path(name: &str) -> Option<String>`**
+  the OS path behind name: a folder mount's file, or name itself when it has no scheme
+
+- **`fn set_app_id(id: &str)`**
+  set the name of the app's own folders (ui::main!: the app folder of build_rs.py); ignored
+  unless it is a plain file name (letters, digits, '.', '-', '_', not only dots)
+
+- **`fn app_id() -> String`**
+  the name of the app's own folders: set_app_id, else the exe's name without extension
+
+- **`fn app_dir(kind: u32) -> Option<String>`**
+  the app's settings (APP_CONFIG), data (APP_DATA) or cache (APP_CACHE) folder
+
+- **`struct MemFs`**
+  files in memory (mem://, tests, generated data)
+
+**`impl MemFs`**
+
+- **`fn new() -> MemFs`**
+
+- **`struct DirFs`**
+  an OS folder as the root (config://, data://, cache://, mounts of the app); every call
+  goes through the checked OS functions, so the app's permissions apply
+
+**`impl DirFs`**
+
+- **`fn new(root: &str) -> DirFs`**
+  root: an absolute OS folder (created on the first write)
+
+- **`struct Overlay`**
+  several providers in one tree: a path comes from the first layer that has it, a folder
+  lists the entries of every layer, writes go to the first layer (deleting a file of a lower
+  layer is not possible)
+
+**`impl Overlay`**
+
+- **`fn new(layers: Vec<Arc<dyn Provider>>) -> Overlay`**
+  layers[0] is on top
+
+- **`struct Sub`**
+  one folder of another provider as a root (a theme folder of app://)
+
+**`impl Sub`**
+
+- **`fn new(inner: Arc<dyn Provider>, dir: &str) -> Option<Sub>`**
+  dir: a folder of inner ('/' separated; None for "..")
+
+- **`struct Bundle`**
+  a read-only JFA1 bundle (app://: the app's assets folder, packed by build_rs.py)
+
+**`impl Bundle`**
+
+- **`fn empty() -> Bundle`**
+  a bundle without files
+- **`fn from_static(b: &'static [u8]) -> Option<Bundle>`**
+  the bundle embedded in the program (None: malformed)
+- **`fn new(b: Vec<u8>) -> Option<Bundle>`**
+  a bundle in memory (None: malformed)
+- **`fn len(&self) -> usize`**
+  the number of files
+- **`fn is_empty(&self) -> bool`**
+  whether the bundle has no files
+
+- **`fn pack_bundle(files: &[(&str, &[u8])]) -> Option<Vec<u8>>`**
+  a JFA1 bundle of (name, data) pairs: LZ4 where that saves a tenth (tests, tools); None for
+  a name route() would refuse, a name twice, or a bundle beyond 4 GiB
+
 ### `plat/guarded.rs`
 
 Source: [`lib/plat/guarded.rs`](../lib/plat/guarded.rs)
 
 ```text
-guarded -- the public file functions: the check of the app's permissions (policy.rs), then
-the OS call (win_sys.rs, linux_sys.rs, web_files.rs: the *_raw functions, which the
-platform layer uses for its own system files)
+guarded -- the public file functions: a name with a scheme goes to its vfs provider
+(vfs.rs), any other name is checked against the app's permissions (policy.rs) and then
+handed to the OS call (win_sys.rs, linux_sys.rs, web_files.rs: the *_raw functions, which
+the platform layer uses for its own system files)
 
-A refused path looks like a missing or unreadable one: 0 / None / false.
+A refused path looks like a missing or unreadable one: 0 / None / false.  The streaming
+File / FileLock calls work on OS paths and on folder mounts (config://, data://, cache://,
+DirFs); for the other providers they return None.
 ```
 
 - **`fn file_exists(path: &str) -> u32`**
@@ -11499,7 +11673,7 @@ A refused path looks like a missing or unreadable one: 0 / None / false.
   a file or an empty directory  [plat_delete]
 
 - **`fn rename(old: &str, new: &str) -> bool`**
-  rename, replacing an existing target  [plat_rename]
+  rename, replacing an existing target (both names on the OS or in the same mount)  [plat_rename]
 
 - **`fn dir_list(path: &str, f: &mut dyn FnMut(&str, bool, u32)) -> bool`**
   f(name, is_dir, size_lo) for every entry except "." and ".."  [plat_dir_list]
@@ -11508,7 +11682,8 @@ A refused path looks like a missing or unreadable one: 0 / None / false.
   the contents of a file  [plat_file_read]
 
 - **`fn write_file(path: &str, data: &[u8]) -> bool`**
-  Write an exclusively created sibling, flush it, then replace path. [plat_file_write]
+  Write an exclusively created sibling, flush it, then replace path (a mount: its own way of
+  replacing a file; missing folders are created). [plat_file_write]
 
 **`impl File`**
 
@@ -12201,6 +12376,13 @@ threads may use one File at the same time.
 - **`fn config_dir() -> Option<String>`**
   %APPDATA%, else %USERPROFILE%/AppData/Roaming; '/' separators, no trailing slash
 
+- **`fn data_dir() -> Option<String>`**
+  %LOCALAPPDATA%, else %USERPROFILE%/AppData/Local; '/' separators, no trailing slash
+
+- **`fn cache_dir() -> Option<String>`**
+  the same folder as data_dir: Windows keeps an app's cache below its local folder
+  (vfs.rs: cache:// = &lt;data_dir>/&lt;app>/Cache)
+
 - **`fn temp_dir() -> Option<String>`**
   GetTempPathW in the same form as config_dir
 
@@ -12861,6 +13043,12 @@ pread / pwrite, so several threads may use one File at the same time.
 - **`fn config_dir() -> Option<String>`**
   $XDG_CONFIG_HOME (absolute), else $HOME/.config; no trailing slash
 
+- **`fn data_dir() -> Option<String>`**
+  $XDG_DATA_HOME (absolute), else $HOME/.local/share; no trailing slash
+
+- **`fn cache_dir() -> Option<String>`**
+  $XDG_CACHE_HOME (absolute), else $HOME/.cache; no trailing slash
+
 - **`fn temp_dir() -> Option<String>`**
   $TMPDIR (absolute), else /tmp
 
@@ -13242,6 +13430,12 @@ durable storage is a separate asynchronous request confirmed by the browser host
 
 - **`fn config_dir() -> Option<String>`**
   Configuration namespace in virtual storage.
+
+- **`fn data_dir() -> Option<String>`**
+  Application data namespace in virtual storage.
+
+- **`fn cache_dir() -> Option<String>`**
+  Cache namespace in virtual storage.
 
 - **`fn temp_dir() -> Option<String>`**
   Temporary virtual namespace.
@@ -17115,6 +17309,9 @@ SNAP_MAGIC: &[u8; 4] = b"BCN1"
 ```text
 In-memory ZIP32 interchange. New native library code, independent of document/UI code.
 Raw DEFLATE and CRC reuse the existing safe codec primitives; no paths are extracted.
+ZipFs shows an archive as a read-only plat::vfs tree:
+  plat::vfs::mount("pack", Arc::new(archive::ZipFs::new(&bytes, Limits::default())?))
+  -> plat::read_file("pack://textures/a.png")
 ```
 
 ### `archive` crate root
@@ -17144,6 +17341,15 @@ Raw DEFLATE and CRC reuse the existing safe codec primitives; no paths are extra
 
 - **`fn write(entries: &[Entry], limits: Limits) -> Result<Vec<u8>, Error>`**
   Deterministic stored ZIP32 writer (UTF-8 names, fixed DOS date 1980-01-01).
+
+- **`struct ZipFs(plat::vfs::MemFs)`**
+  A ZIP archive as a read-only plat::vfs provider (mount it under a scheme of its own). The
+  parts are checked and decompressed once, within `limits`.
+
+**`impl ZipFs`**
+
+- **`fn new(b: &[u8], limits: Limits) -> Result<ZipFs, Error>`**
+  Read every part of the archive; Invalid also for names that collide as file and folder.
 
 ## doc_core
 

@@ -47,28 +47,36 @@ Host bietet (13 `CAP_*`-Bits). Seit Paket 1 und 2 (2026-10-16) gibt es das Manif
 
 ## 2. Virtuelles Dateisystem und Ressourcen
 
-Vorhanden: [`plat/web_files.rs`](../lib/plat/web_files.rs) (virtuelle Dateien nur im
-Browser), [`plat/fs.rs`](../lib/plat/fs.rs) (direkter OS-Zugriff),
-[`plat/watch.rs`](../lib/plat/watch.rs), [`lib/archive`](../lib/archive/lib.rs).
+Vorhanden: [`plat/vfs.rs`](../lib/plat/vfs.rs) ([VFS.md](VFS.md)) seit 2026-10-16,
+[`plat/web_files.rs`](../lib/plat/web_files.rs) (virtuelle Dateien im Browser),
+[`plat/fs.rs`](../lib/plat/fs.rs), [`plat/watch.rs`](../lib/plat/watch.rs),
+[`lib/archive`](../lib/archive/lib.rs).
 
-- **P1** · *teilweise* · Einheitliche VFS-Schicht für nativ, Web und Android mit Mounts:
-  - `app://` für eingebettete Assets
-  - `config://`, `data://`, `cache://` für die App-Verzeichnisse
+- **P1** · *teilweise* · Einheitliche VFS-Schicht für nativ, Web und Android: Alle
+  Datei-Funktionen von `plat` verstehen `schema://pfad`. Fertig sind:
+  - `app://` mit den eingebetteten Assets
+  - `config://`, `data://`, `cache://` als App-Ordner, durch die Berechtigungen immer erlaubt
   - `mem://` im Speicher
-  - `zip://` über `lib/archive`
-  - Overlay / Union für Themes und Mods
-  - Datei-Handles aus Portalen bzw. Dokumenten
+  - eigene Mounts: `DirFs`, `Overlay` für Themes und Mods, `Sub`, `Bundle`, ZIP über
+    `archive::ZipFs`
 
-  Darauf bauen die Scopes aus Abschnitt 1 auf.
-- **P1** · *fehlt* · Assets beim Build bündeln: Ordner einbetten, mit `lib/compress` packen,
-  per Hash versionieren. Heute von Hand (`*.bin`, `icons_data.rs`).
+  Es fehlen noch:
+  - Datei-Handles aus Portalen bzw. Dokumenten (Flatpak, Android SAF, Browser)
+  - `plat::fs` (stat, Links, Zeiten) und `File`-Streams für Speicher-, Bundle- und ZIP-Mounts
+  - Whiteouts im Overlay
+- **P1** · *erledigt* · Assets beim Build bündeln: `apps/NAME/assets/` wird von
+  `tools/assetpack.py` als JFA1 gepackt (LZ4 wie `lib/compress`, „stored“, wenn LZ4 nicht
+  mindestens ein Zehntel spart) und per `include_bytes!` eingebettet. Der Inhalts-Hash steuert
+  den Rebuild, `ui::main!` mountet das Bundle als `app://`. Programme aus `BINS` und
+  Android-Builds bekommen noch keine Assets.
 - **P1** · *erledigt* · Pfade normalisieren und `..`-Ausbrüche verhindern
   (`plat::policy::normalize`: Windows-Präfixe, UNC, Laufwerke, Geräte- und Stream-Namen;
   unter Linux wird `..` abgelehnt, weil der Kernel es erst nach Symlinks anwendet). Die
   Prüfung ist lexikalisch: Symlinks in erlaubten Ordnern können noch hinausführen.
-- **P2** · *teilweise* · Alle Standardordner: `cache_dir`, `data_dir`, `log_dir`, Dokumente,
-  Downloads, Bilder (XDG-Benutzerordner, Known Folders). Heute gibt es `config_dir`,
-  `temp_dir`, `home`; `win_inst::known_folder` nur für den Installer.
+- **P2** · *teilweise* · Alle Standardordner: `data_dir`, `cache_dir` und die App-Ordner
+  (`vfs::app_dir`) gibt es jetzt neben `config_dir`, `temp_dir`, `home`. Es fehlen noch:
+  `log_dir`, Dokumente, Downloads, Bilder (XDG-Benutzerordner, Known Folders;
+  `win_inst::known_folder` nur für den Installer).
 - **P2** · *fehlt* · In den Papierkorb verschieben statt löschen (Windows `IFileOperation`,
   freedesktop-Trash-Spezifikation).
 - **P2** · *fehlt* · Asynchrone bzw. streamende Datei-API mit Fortschritt und Abbruch.

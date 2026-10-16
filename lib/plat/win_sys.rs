@@ -147,6 +147,21 @@ pub fn config_dir() -> Option<String> {
     Some(slash_fix(p + "/AppData/Roaming"))
 }
 
+/// %LOCALAPPDATA%, else %USERPROFILE%/AppData/Local; '/' separators, no trailing slash
+pub fn data_dir() -> Option<String> {
+    if let Some(v) = env("LOCALAPPDATA").filter(|v| !v.is_empty()) {
+        return Some(slash_fix(v));
+    }
+    let p = env("USERPROFILE").filter(|v| !v.is_empty())?;
+    Some(slash_fix(p + "/AppData/Local"))
+}
+
+/// the same folder as data_dir: Windows keeps an app's cache below its local folder
+/// (vfs.rs: cache:// = <data_dir>/<app>/Cache)
+pub fn cache_dir() -> Option<String> {
+    data_dir()
+}
+
 /// GetTempPathW in the same form as config_dir
 pub fn temp_dir() -> Option<String> {
     let mut buf = [0u16; TEMPW_MAX];

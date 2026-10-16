@@ -1,10 +1,12 @@
-// perm -- the app's permissions on the UI side (plat::policy, docs/PERMISSIONS.md): the
-// manifest built into the app, the files the user hands over and the library's own file use
+// perm -- what build_rs.py builds into an app, set up before it starts, and the app's
+// permissions on the UI side (plat::policy, docs/PERMISSIONS.md, docs/VFS.md)
 //
-//   permissions(manifest)   (main!) install apps/NAME/PERMISSIONS, which build_rs.py passes
-//                           as JFGUI_PERMISSIONS; Err(exit code) for a manifest it refuses.
-//                           The paths on the command line come from the user: with fs.user
-//                           they may be read and written (folders with everything below).
+//   boot(app, manifest, assets)   (main!) the app's name for its folders (plat::vfs::
+//                           set_app_id), its asset bundle as app:// (JFA1, apps/NAME/assets),
+//                           then its manifest (apps/NAME/PERMISSIONS); Err(exit code) for a
+//                           bundle or manifest it refuses.  The paths on the command line come
+//                           from the user: with fs.user they may be read and written (folders
+//                           with everything below).
 //   grant_user(path)        the same for a path of the file dialog or a drop
 //   trusted(f)              f on this thread without file checks: the library's own file
 //                           dialog lists folders, scripts read and write their files
@@ -12,15 +14,32 @@
 // The key of plat::policy stays here: apps cannot widen their own permissions.
 
 use alloc::string::String;
+use alloc::sync::Arc;
 
 use plat::policy::{self, Key, FS_WRITE};
+use plat::vfs;
 use rt::sync::SpinLock;
 
 static KEY: SpinLock<Option<Key>> = SpinLock::new(None);
 
-/// (main!) install the app's manifest (None: the app has none, everything stays allowed)
+/// (main!) set up the app: its name, its assets (app://), its permissions
 #[doc(hidden)]
-pub fn permissions(manifest: Option<&str>) -> Result<(), i32> {
+pub fn boot(app: Option<&str>, manifest: Option<&str>, assets: &'static [u8]) -> Result<(), i32> {
+    if let Some(id) = app {
+        vfs::set_app_id(id);
+    }
+    if !assets.is_empty() {
+        let Some(b) = vfs::Bundle::from_static(assets) else {
+            plat::write_stderr(b"error: the built-in assets (app://) are damaged\n");
+            return Err(2);
+        };
+        vfs::mount("app", Arc::new(b));
+    }
+    permissions(manifest)
+}
+
+// install the app's manifest (None: the app has none, everything stays allowed)
+fn permissions(manifest: Option<&str>) -> Result<(), i32> {
     let Some(text) = manifest else { return Ok(()) };
     let key = match policy::install(text) {
         Ok(k) => k,

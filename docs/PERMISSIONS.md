@@ -53,8 +53,10 @@ net.listen  127.0.0.1:0               # a local server on a free port
 ### Patterns
 
 - A pattern is an absolute path or starts with a variable: `$CONFIG` (`config_dir()`),
-  `$TEMP` (`temp_dir()`), `$HOME`, `$EXE` (the folder of the executable) or `$FONTS` (every
-  system font folder). A variable without a value on this machine drops the pattern.
+  `$TEMP` (`temp_dir()`), `$HOME`, `$EXE` (the folder of the executable), `$FONTS` (every
+  system font folder), or the app's own folders `$APPCONFIG`, `$APPDATA` and `$APPCACHE`
+  (`config://`, `data://`, `cache://`; [VFS.md](VFS.md)). A variable without a value on this
+  machine drops the pattern.
 - `*` and `?` match inside one path segment. A `**` segment matches any number of
   segments. `dir/**` also matches `dir` itself. `**` alone matches every path.
 - `X:/...` and `//server/share/...` are Windows paths; `/...` is a Linux path. Each OS
@@ -87,6 +89,8 @@ URL schemes and bad `HOST:PORT` values with the file and line number. The app is
 
 - Reading the system font folders (`plat::policy::font_dirs`, the folders fontdb scans) and
   the executable's folder (assets, modules).
+- Reading and writing the app's own folders (`config://`, `data://`, `cache://`, see
+  [VFS.md](VFS.md)), and the bundled `app://` assets and `mem://`, which touch no OS files.
 - On Linux, reading `/etc/resolv.conf` and `/etc/hosts` (the resolver of `netio`).
 - Anonymous temporary files: `File::open_temp(None)`.
 - `spawn_self`: a second instance of the same program, with the same manifest.

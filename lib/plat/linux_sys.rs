@@ -94,6 +94,26 @@ pub fn config_dir() -> Option<String> {
     Some(trim_slash(s))
 }
 
+/// $XDG_DATA_HOME (absolute), else $HOME/.local/share; no trailing slash
+pub fn data_dir() -> Option<String> {
+    xdg_dir("XDG_DATA_HOME", ".local/share")
+}
+
+/// $XDG_CACHE_HOME (absolute), else $HOME/.cache; no trailing slash
+pub fn cache_dir() -> Option<String> {
+    xdg_dir("XDG_CACHE_HOME", ".cache")
+}
+
+// an XDG base directory: the variable when it is absolute, else $HOME/fallback
+fn xdg_dir(var: &str, fallback: &str) -> Option<String> {
+    if let Some(v) = env(var).filter(|v| v.starts_with('/')) {
+        return Some(trim_slash(v));
+    }
+    let home = trim_slash(env("HOME").filter(|v| !v.is_empty())?);
+    let s = if home.ends_with('/') { home + fallback } else { home + "/" + fallback };
+    Some(trim_slash(s))
+}
+
 /// $TMPDIR (absolute), else /tmp
 pub fn temp_dir() -> Option<String> {
     match env("TMPDIR").filter(|v| v.starts_with('/')) {

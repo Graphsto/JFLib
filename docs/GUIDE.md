@@ -635,6 +635,16 @@ ui.dialog_end(); // always
   `doc_layout` reserves footnotes at page bottoms, continues long notes and appends
   endnotes. Render each `Page.separators` item alongside its lines. Note bodies have
   normal paragraph hit-test IDs, so apps can navigate from the preview to their editor.
+* **Virtual files**: every file function also takes `scheme://path`. `app://` holds the files
+  of `apps/NAME/assets`, which are built into the program. `config://`, `data://` and
+  `cache://` are the app's own folders, and `mem://` lives in memory. Your own mounts are
+  folders, overlays, sub-folders and ZIP archives. [VFS.md](VFS.md) has the details.
+
+  ```rust
+  let logo = plat::read_file("app://images/logo.png");
+  let ini = base::Ini::load("config://settings.ini");
+  ```
+
 * **Permissions**: an `apps/NAME/PERMISSIONS` file limits what the app may touch: files
   below patterns, the user's own files, programs, URL schemes, plugins, printing, network
   hosts and ports. The build

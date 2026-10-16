@@ -43,11 +43,13 @@
 //                         address, a block, localhost or *; 0.0.0.0 / [::] = every interface)
 //                         and PORT (port 0 = any free one: the rule needs 0 or *)
 // A PATTERN is an absolute path (X:/.. and //server/share/.. count on Windows only, /.. on
-// Linux only), or starts with $CONFIG $TEMP $HOME $EXE $FONTS (a variable without a value
-// drops the pattern); '*' / '?' match inside one segment, a '**' segment any
-// number of segments ("dir/**" also matches dir itself); "**" alone matches every path.
-// Windows compares without case.  Always readable: the font folders, the exe folder and on
-// Linux /etc/resolv.conf and /etc/hosts (netio's resolver).
+// Linux only), or starts with $CONFIG $TEMP $HOME $EXE $FONTS or the app's own folders
+// $APPCONFIG $APPDATA $APPCACHE (vfs::app_dir; a variable without a value drops the
+// pattern); '*' / '?' match inside one segment, a '**' segment any number of segments
+// ("dir/**" also matches dir itself); "**" alone matches every path.  Windows compares
+// without case.  Always readable: the font folders, the exe folder and on Linux
+// /etc/resolv.conf and /etc/hosts (netio's resolver); always writable: the app's own
+// folders (config://, data://, cache://; vfs::set_app_id comes first).
 //
 // The checks are lexical: a symbolic link inside an allowed folder can point outside it.  On
 // Linux a path with a ".." segment is refused: "allowed/link/../x" would leave the folder.
@@ -316,6 +318,11 @@ fn parse(text: &str) -> Result<Policy, String> {
     if let Some(e) = exe_dir() {
         add_dir_rule(&mut p.fs, &e, FS_READ);
     }
+    for k in [crate::vfs::APP_CONFIG, crate::vfs::APP_DATA, crate::vfs::APP_CACHE] {
+        if let Some(d) = crate::vfs::app_dir(k) {
+            add_dir_rule(&mut p.fs, &d, FS_WRITE);
+        }
+    }
     if cfg!(target_os = "linux") {
         for f in ["/etc/resolv.conf", "/etc/hosts"] {
             p.fs.push(Rule { segs: split(f), mode: FS_READ });
@@ -423,7 +430,12 @@ fn pattern(a: &str) -> Result<Vec<Vec<String>>, String> {
             "HOME" => crate::home().into_iter().collect(),
             "EXE" => exe_dir().into_iter().collect(),
             "FONTS" => font_dirs(),
-            other => return Err(alloc::format!("unknown variable ${} (CONFIG, TEMP, HOME, EXE, FONTS)", other)),
+            "APPCONFIG" => crate::vfs::app_dir(crate::vfs::APP_CONFIG).into_iter().collect(),
+            "APPDATA" => crate::vfs::app_dir(crate::vfs::APP_DATA).into_iter().collect(),
+            "APPCACHE" => crate::vfs::app_dir(crate::vfs::APP_CACHE).into_iter().collect(),
+            other => {
+                return Err(alloc::format!("unknown variable ${} (CONFIG, TEMP, HOME, EXE, FONTS, APPCONFIG, APPDATA, APPCACHE)", other));
+            }
         };
         base.into_iter().map(|b| alloc::format!("{}{}", b, &v[end..])).collect()
     } else {

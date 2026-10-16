@@ -1,5 +1,8 @@
 // In-memory ZIP32 interchange. New native library code, independent of document/UI code.
 // Raw DEFLATE and CRC reuse the existing safe codec primitives; no paths are extracted.
+// ZipFs shows an archive as a read-only plat::vfs tree:
+//   plat::vfs::mount("pack", Arc::new(archive::ZipFs::new(&bytes, Limits::default())?))
+//   -> plat::read_file("pack://textures/a.png")
 #![no_std]
 #![forbid(unsafe_code)]
 extern crate alloc;
@@ -296,4 +299,34 @@ pub fn write(entries: &[Entry], limits: Limits) -> Result<Vec<u8>, Error> {
     put32(&mut b, cd);
     put16(&mut b, 0);
     Ok(b)
+}
+
+/// A ZIP archive as a read-only plat::vfs provider (mount it under a scheme of its own). The
+/// parts are checked and decompressed once, within `limits`.
+pub struct ZipFs(plat::vfs::MemFs);
+
+impl ZipFs {
+    /// Read every part of the archive; Invalid also for names that collide as file and folder.
+    pub fn new(b: &[u8], limits: Limits) -> Result<ZipFs, Error> {
+        use plat::vfs::Provider;
+        let fs = plat::vfs::MemFs::new();
+        for e in read(b, limits)? {
+            if !fs.write(&e.name, &e.data) {
+                return Err(Error::Invalid);
+            }
+        }
+        Ok(ZipFs(fs))
+    }
+}
+
+impl plat::vfs::Provider for ZipFs {
+    fn kind(&self, path: &str) -> u32 {
+        self.0.kind(path)
+    }
+    fn read(&self, path: &str) -> Option<Vec<u8>> {
+        self.0.read(path)
+    }
+    fn list(&self, path: &str, f: &mut dyn FnMut(&str, bool, u64)) -> bool {
+        self.0.list(path, f)
+    }
 }

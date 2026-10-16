@@ -62,6 +62,19 @@ fn permtest() -> i32 {
     t.check(plat::file_exists(&exe) == 1, "permtest: the exe folder is readable");
     t.check(plat::read_file("README.md").is_none(), "permtest: other files are refused");
 
+    // the bundled assets (apps/permtest/assets as app://) and the app's own folders, which the
+    // manifest does not name
+    t.check(plat::read_file("app://hello.txt").as_deref() == Some(&b"Hallo aus app://\n"[..]), "permtest: app://hello.txt from the bundle");
+    let rep = plat::read_file("app://docs/repeat.txt");
+    t.check(rep.as_ref().is_some_and(|r| r.len() == 7000 && r.starts_with(b"JFLib bundles")), "permtest: an LZ4-packed asset");
+    t.check(plat::file_exists("app://docs/deep/empty.bin") == 1 && plat::file_exists("app://.hidden") == 0, "permtest: an empty asset; hidden folders are not packed");
+    t.check(!plat::write_file("app://hello.txt", b"x"), "permtest: app:// is read-only");
+    for scheme in ["config", "data", "cache"] {
+        let name = format!("{scheme}://permtest-check.txt");
+        let ok = plat::write_file(&name, scheme.as_bytes()) && plat::read_file(&name).as_deref() == Some(scheme.as_bytes()) && plat::delete(&name);
+        t.check(ok, &format!("permtest: {scheme}:// is always writable"));
+    }
+
     // no net.* rule: no connection, no listener, no name lookup
     let lo = plat::net::SocketAddr::new(plat::net::IpAddr::LOCALHOST_V4, 1);
     let refused = |e: plat::net::NetError| e.kind == plat::net::NetErrorKind::Denied;

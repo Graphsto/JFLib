@@ -35,6 +35,9 @@
 //                                          patterns, then a manifest installed in this
 //                                          process (files, grants, processes, URLs, plugins,
 //                                          print, capabilities, denials; not in "all")
+//   plattest --test vfs                    (t_vfs.rs) one file namespace: routes, mem://, a
+//                                          DirFs mount, JFA1 bundles, Overlay, Sub, ZipFs,
+//                                          config:// (not in "all")
 //   plattest --test all                    threads, files, ini, cpu
 //   --repeat N                             run the selected tests N times (only failures are
 //                                          printed then) -- a stress loop for races
@@ -71,6 +74,7 @@ mod t_guard;
 mod t_icc;
 mod t_lib;
 mod t_policy;
+mod t_vfs;
 mod t_portal;
 mod t_print;
 
@@ -199,6 +203,7 @@ fn plattest() -> i32 {
         Some("icc") => t_icc::t_icc,                   // plat-shared
         Some("iccx11") => t_icc::t_iccx11,             // plat-shared
         Some("policy") => t_policy::t_policy,          // permissions (not in "all": it stays installed)
+        Some("vfs") => t_vfs::t_vfs,                   // vfs: mounts, bundles, overlays, zip, app folders
         _ => {
             plat::write_stderr(b"usage: plattest --test threads|files|ini|cpu|pen|cursor|all [--repeat N]\n");
             return 2;

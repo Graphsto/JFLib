@@ -55,7 +55,7 @@ fn path(value: &str) -> Option<String> {
     Some(format!("/{}", parts.join("/")))
 }
 fn builtin(path: &str) -> bool {
-    matches!(path, "/" | "/tmp" | "/config" | "/documents" | "/imports")
+    matches!(path, "/" | "/tmp" | "/config" | "/data" | "/cache" | "/documents" | "/imports")
 }
 
 /// Current browser virtual directory; it is unrelated to the host operating system.
@@ -65,6 +65,14 @@ pub fn cwd() -> String {
 /// Configuration namespace in virtual storage.
 pub fn config_dir() -> Option<String> {
     Some(String::from("/config"))
+}
+/// Application data namespace in virtual storage.
+pub fn data_dir() -> Option<String> {
+    Some(String::from("/data"))
+}
+/// Cache namespace in virtual storage.
+pub fn cache_dir() -> Option<String> {
+    Some(String::from("/cache"))
 }
 /// Temporary virtual namespace.
 pub fn temp_dir() -> Option<String> {
@@ -178,7 +186,7 @@ pub(crate) fn dir_list_raw(name: &str, f: &mut dyn FnMut(&str, bool, u32)) -> bo
     let entries = {
         let fs = FILES.lock();
         let mut output = Vec::new();
-        for directory in ["/tmp", "/config", "/documents", "/imports"]
+        for directory in ["/tmp", "/config", "/data", "/cache", "/documents", "/imports"]
             .into_iter()
             .chain(fs.directories.iter().map(|s| s.as_str()))
         {

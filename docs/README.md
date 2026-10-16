@@ -21,7 +21,7 @@ and tests); `../legacy`, `../rewrite` and `../booksAndContext` lie next to it.
 | [jfWord implementation](../apps/jfWord/docs/IMPLEMENTATION.md) | jfOffice, scientific editing, completed checks and remaining Office/Word compatibility work |
 | [STYLES.md](STYLES.md) | the style model (`ui::Style` + sub-traits), the four styles, writing and checking a style |
 | [PACKAGING.md](PACKAGING.md) | `tools/package.py`: setup.exe with a choice of style, the .deb, icons, `apps/NAME/PACKAGE` |
-| [PERMISSIONS.md](PERMISSIONS.md) | `apps/NAME/PERMISSIONS`: the files, programs, URL schemes, plugins and printing an app may use, and how `plat` enforces them |
+| [PERMISSIONS.md](PERMISSIONS.md) | `apps/NAME/PERMISSIONS`: the files, programs, URL schemes, plugins, printing and network addresses an app may use, and how `plat` enforces them |
 | [`../README.md`](../README.md) | building and testing the Rust code, the rules (`no_std`, no crates, `unsafe` only in `rt` / `simd` / `plat` / `plugin` and the module runtimes), the crate layout, SIMD kernels |
 | [`../plugins/README.md`](../plugins/README.md) | PaintCraft plugins in Rust |
 

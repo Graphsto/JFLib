@@ -17,22 +17,23 @@ damit die Liste vollständig ist.
 ## 1. Berechtigungen und Sicherheit (wie bei Tauri)
 
 Vorhanden: [`plat/capabilities.rs`](../lib/plat/capabilities.rs) meldet, welche Dienste der
-Host bietet (13 `CAP_*`-Bits). Seit Paket 1 (2026-10-16) gibt es das Manifest
+Host bietet (13 `CAP_*`-Bits). Seit Paket 1 und 2 (2026-10-16) gibt es das Manifest
 `apps/NAME/PERMISSIONS` ([PERMISSIONS.md](PERMISSIONS.md),
 [`plat/policy.rs`](../lib/plat/policy.rs), [`ui/perm.rs`](../lib/ui/perm.rs)).
 
 - **P1** · *erledigt* · Berechtigungs-Manifest pro App (`apps/NAME/PERMISSIONS` neben
   `TARGETS` / `STYLE`); `build_rs.py` prüft es, `ui::main!` installiert es, `plat` setzt es
   durch. Ohne Datei bleibt alles erlaubt.
-- **P1** · *teilweise* · Scopes: Dateien unter Mustern mit `$CONFIG` / `$TEMP` / `$HOME` /
+- **P1** · *erledigt* · Scopes: Dateien unter Mustern mit `$CONFIG` / `$TEMP` / `$HOME` /
   `$EXE` / `$FONTS`, vom Nutzer gewählte Dateien (`fs.user`: Dialog, Drop, Kommandozeile),
-  Prozesse, `open_url`-Schemes, Plugins und Drucken sind fertig. Es fehlt noch: Netz nur zu
-  erlaubten Hosts / Ports (`plat::net`, `netio` mit eigenem DNS; Paket 2).
+  Prozesse, `open_url`-Schemes, Plugins, Drucken und Netz (`net.connect` / `net.listen`:
+  Namen, `*.domain`, IPs, Adressblöcke, `localhost`, Port-Bereiche; Namen werden beim
+  Auflösen geprüft, ihre Adressen dann vorgemerkt).
 - **P1** · *teilweise* · Zentrale Durchsetzung in `plat` (Dateien, `fs.rs`, Prozesse, Shell,
-  Plugins, Drucken) statt in jeder App; Verweigerungen als `PERMDENY` auf stderr und in
-  `plat::policy::denials()`, `capabilities()` blendet verweigerte Dienste aus. Es fehlt
-  noch: Netz (Paket 2); Programme aus `BINS`, `rt::main!`-Konsolenprogramme und Android
-  bekommen das Manifest noch nicht.
+  Plugins, Drucken, Sockets und Namensauflösung inkl. `netio::dns`) statt in jeder App;
+  Verweigerungen als `PERMDENY` auf stderr und in `plat::policy::denials()`,
+  `capabilities()` blendet verweigerte Dienste aus. Es fehlt noch: Programme aus `BINS`,
+  `rt::main!`-Konsolenprogramme und Android bekommen das Manifest noch nicht.
 - **P2** · *fehlt* · Laufzeit-Rückfragen („App möchte auf … zugreifen“) mit gespeicherter
   Entscheidung und Widerruf in den Einstellungen.
 - **P2** · *fehlt* · Sicherer Speicher für Geheimnisse: Windows Credential Manager / DPAPI,

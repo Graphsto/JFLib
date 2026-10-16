@@ -5,12 +5,14 @@
 //      installed)
 //   3. a manifest for a scratch tree, installed in this process: reads, writes, traversal,
 //      fs.rs, locks, a grant of the user's file, Key::trusted, processes, URLs, plugins,
-//      print, capabilities() and the denial records
+//      print, capabilities(), the network (connect, listen, UDP, names, resolved addresses,
+//      DNS, Unix sockets) and the denial records
 // A policy stays installed until the process ends: this test is not part of "all".
 
 use alloc::format;
 use alloc::vec::Vec;
 
+use plat::net::{IpAddr, NetErrorKind, SocketAddr, TcpListener, TcpStream, UdpSocket};
 use plat::policy::{self, FS_READ};
 use plat::{FO_READ, FO_WRITE, File, FileLock};
 
@@ -102,7 +104,11 @@ fn patterns(t: &mut T) {
 }
 
 fn refused_manifests(t: &mut T) {
-    for m in ["fs.read relative/path", "bogus", "url ftp:x", "fs.read $NOPE/x", "print now", "fs.write"] {
+    for m in [
+        "fs.read relative/path", "bogus", "url ftp:x", "fs.read $NOPE/x", "print now", "fs.write",
+        "net.connect example.org", "net.connect ::1:80", "net.listen example.org:80", "net.connect 10.0.0.0/33:1",
+        "net.connect a..b:1", "net.connect host:70000", "net.connect host:9-3", "net.connect [10.0.0.1]:1", "net.connect",
+    ] {
         let r = policy::install(m);
         t.check(r.is_err(), &format!("policy: manifest {m:?} refused"));
     }
@@ -118,9 +124,14 @@ fn installed(t: &mut T) {
         && plat::write_file(&p("ro/a.txt"), b"ro") && plat::write_file(&p("no/secret.txt"), b"secret")
         && plat::write_file(&p("no/other.txt"), b"other") && plat::write_file(&p("no/user.txt"), b"user");
     t.check(ok, "policy: scratch tree");
+    // a listener on a free loopback port, opened before the policy: the one port it allows
+    let listener = TcpListener::bind(&SocketAddr::new(IpAddr::LOCALHOST_V4, 0)).ok();
+    let port = listener.as_ref().and_then(|l| l.local_addr().ok()).map_or(0, |a| a.port);
+    t.check(port != 0, "policy: a loopback listener before the policy");
     let manifest = format!(
         "# plattest --test policy\nfs.read {base}/ro/**\nfs.write {base}/rw/**   # writes imply reads\nfs.user\n\
-         process plattest-no-such-program\nurl https MailTo\n"
+         process plattest-no-such-program\nurl https MailTo\n\
+         net.connect 127.0.0.1:{port} *.example.test:443 printer.lan:631-632\nnet.listen 127.0.0.1:0\n"
     );
     let key = match policy::install(&manifest) {
         Ok(k) => k,
@@ -187,11 +198,50 @@ fn installed(t: &mut T) {
     t.check(caps.supports(plat::CAP_FILE_READ | plat::CAP_FILE_WRITE), "policy: capabilities keep the files");
     t.check(!caps.supports(plat::CAP_PRINT) && !caps.supports(plat::CAP_NATIVE_PLUGINS), "policy: capabilities drop print and plugins");
 
+    // the network
+    let at = |p: u16| SocketAddr::new(IpAddr::LOCALHOST_V4, p);
+    let denied = |r: Result<(), NetErrorKind>| r == Err(NetErrorKind::Denied);
+    t.check(TcpStream::connect(&at(port), 2000).is_ok(), "policy: connect to a net.connect address");
+    let other = if port == u16::MAX { port - 1 } else { port + 1 };
+    t.check(denied(TcpStream::connect(&at(other), 2000).map(|_| ()).map_err(|e| e.kind)), "policy: connect to another port is Denied");
+    t.check(TcpListener::bind(&at(0)).is_ok(), "policy: listen on a free loopback port (net.listen 127.0.0.1:0)");
+    let any = SocketAddr::new(IpAddr::UNSPECIFIED_V4, 0);
+    t.check(denied(TcpListener::bind(&any).map(|_| ()).map_err(|e| e.kind)), "policy: listen on every interface is Denied");
+    t.check(denied(TcpListener::bind(&at(other)).map(|_| ()).map_err(|e| e.kind)), "policy: listen on a fixed port is Denied");
+    let udp = UdpSocket::bind(&at(0));
+    t.check(udp.is_ok(), "policy: a UDP client socket (port 0)");
+    t.check(denied(UdpSocket::bind(&at(other)).map(|_| ()).map_err(|e| e.kind)), "policy: a UDP socket on a fixed port is Denied");
+    if let Ok(u) = &udp {
+        t.check(u.send_to(b"x", &at(port)).is_ok(), "policy: a datagram to a net.connect address");
+        t.check(denied(u.send_to(b"x", &at(9)).map(|_| ()).map_err(|e| e.kind)), "policy: a datagram elsewhere is Denied");
+    }
+    t.check(policy::net_name_allowed("a.example.test") && policy::net_name_allowed("b.a.example.test.") && policy::net_name_allowed("PRINTER.lan"),
+        "policy: names of the rules");
+    t.check(!policy::net_name_allowed("example.test") && !policy::net_name_allowed("evil.org") && !policy::net_name_allowed("xexample.test"),
+        "policy: other names refused (*.name: only names below it)");
+    let far = |p: u16| SocketAddr::new(IpAddr::V4([10, 1, 2, 3]), p);
+    t.check(!policy::net_connect_allowed(&far(443)), "policy: an address before its name was resolved");
+    policy::net_resolved("www.example.test", &[far(443)]);
+    t.check(policy::net_connect_allowed(&far(443)) && !policy::net_connect_allowed(&far(80)), "policy: a resolved address with the name's ports");
+    let evil = SocketAddr::new(IpAddr::V4([10, 9, 9, 9]), 443);
+    policy::net_resolved("evil.org", &[evil]);
+    t.check(!policy::net_connect_allowed(&evil), "policy: a refused name registers nothing");
+    policy::net_resolved("printer.lan", &[SocketAddr::new(IpAddr::V4([192, 168, 7, 7]), 631)]);
+    t.check(policy::net_connect_allowed(&SocketAddr::new(IpAddr::V4([192, 168, 7, 7]), 632)), "policy: a port range of a name");
+    t.check(policy::net_connect_allowed(&SocketAddr::new(IpAddr::V4([8, 8, 8, 8]), 53)), "policy: DNS (port 53) with name rules");
+    if cfg!(windows) {
+        t.check(denied(plat::net::resolve("evil.org", 80).map(|_| ()).map_err(|e| e.kind)), "policy: resolve of a refused name is Denied");
+    }
+    t.check(denied(plat::net::connect_unix(&p("no/sock"), 500).map(|_| ()).map_err(|e| e.kind)), "policy: a Unix socket outside fs.write is Denied");
+    drop(listener);
+
     // the audit
     let d = policy::denials();
     let has = |kind: &str, end: &str| d.iter().any(|x| x.kind == kind && x.target.ends_with(end));
     t.check(has("fs.read", "secret.txt") && has("fs.write", "b.txt") && has("process", "plattest-other-program")
-        && has("url", "ftp://example.org") && has("plugins", "plugin.dll") && has("print", ""), "policy: denials recorded");
+        && has("url", "ftp://example.org") && has("plugins", "plugin.dll") && has("print", "")
+        && has("net.connect", &format!(":{other}")) && has("net.listen", "0.0.0.0:0") && has("net.connect", "evil.org"),
+        "policy: denials recorded");
     t.info(&format!("  {} denial(s) recorded\n", d.len()));
 
     key.trusted(|| rm_tree(&base));

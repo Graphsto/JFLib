@@ -3,8 +3,9 @@
 //
 //   permtest FILE     FILE (named on the command line: the user's, fs.user) may be written,
 //                     a neighbour of it may not; $TEMP/permtest-* may be written, the rest
-//                     of $TEMP not; print and the listed URL schemes are allowed, plugins and
-//                     other schemes are not.  Prints PASS / FAIL; exit code = failures.
+//                     of $TEMP not; print and the listed URL schemes are allowed, plugins,
+//                     other schemes and the network (no net.* rule) are not.  Prints PASS /
+//                     FAIL; exit code = failures.
 //   (build_rs.py test runs it through tests/manifest.uis; --script is ignored)
 #![no_std]
 #![no_main]
@@ -60,6 +61,13 @@ fn permtest() -> i32 {
     let exe = plat::current_exe().unwrap_or_default();
     t.check(plat::file_exists(&exe) == 1, "permtest: the exe folder is readable");
     t.check(plat::read_file("README.md").is_none(), "permtest: other files are refused");
+
+    // no net.* rule: no connection, no listener, no name lookup
+    let lo = plat::net::SocketAddr::new(plat::net::IpAddr::LOCALHOST_V4, 1);
+    let refused = |e: plat::net::NetError| e.kind == plat::net::NetErrorKind::Denied;
+    t.check(plat::net::TcpStream::connect(&lo, 500).err().is_some_and(refused), "permtest: no connection without net.connect");
+    t.check(plat::net::TcpListener::bind(&lo).err().is_some_and(refused), "permtest: no listener without net.listen");
+    t.check(!policy::net_name_allowed("example.org"), "permtest: no name lookup without net.connect");
 
     // the other permissions
     t.check(policy::url_allowed("mailto:a@b") && !policy::url_allowed("file:///etc/passwd"), "permtest: url https mailto");

@@ -13,6 +13,10 @@
 //             (GetAddrInfoW).  Linux names go through netio::dns (no libc here).
 //   NetError: the kinds callers act on, with the OS code
 //
+// The app's permissions (policy.rs, net.connect / net.listen) are checked before connect,
+// bind, send_to and a name lookup; Unix sockets follow the file rules (fs.write on the path).
+// A refusal is NetErrorKind::Denied.
+//
 // Timeouts are readiness waits (WSAPoll / poll) before each call, never SO_RCVTIMEO: after a
 // timed-out blocking receive Windows leaves the connection in an undefined state.  Sockets are
 // not inherited by child processes; sends never raise SIGPIPE.  Every method takes &self, so
@@ -218,6 +222,8 @@ pub enum NetErrorKind {
     NotFound,
     /// the peer closed the connection before all bytes arrived (read_exact)
     Eof,
+    /// the app's permissions (apps/NAME/PERMISSIONS) do not allow the address or name
+    Denied,
     Other,
 }
 
@@ -245,6 +251,7 @@ impl fmt::Display for NetError {
             NetErrorKind::Unreachable => "network unreachable",
             NetErrorKind::NotFound => "host not found",
             NetErrorKind::Eof => "connection closed",
+            NetErrorKind::Denied => "not allowed by the app's permissions",
             NetErrorKind::Other => "network error",
         };
         if self.code != 0 { write!(f, "{} (os error {})", what, self.code) } else { f.write_str(what) }
@@ -255,6 +262,10 @@ pub type NetResult<T> = Result<T, NetError>;
 
 fn timed_out() -> NetError {
     NetError::new(NetErrorKind::TimedOut, 0)
+}
+
+fn denied() -> NetError {
+    NetError::new(NetErrorKind::Denied, 0)
 }
 
 // ------------------------------------------------------------------ OS layer
@@ -722,6 +733,9 @@ pub struct TcpListener {
 impl TcpListener {
     /// listen on an address (port 0: any free port, see local_addr)
     pub fn bind(addr: &SocketAddr) -> NetResult<TcpListener> {
+        if !crate::policy::net_listen_allowed(addr) {
+            return Err(denied());
+        }
         let s = Sock(sys::socket(family(addr), 1, 6)?);
         let _ = sys::set_opt(s.0, sys::SOL_SOCKET, sys::SO_REUSEADDR, 1);
         if matches!(addr.ip, IpAddr::V6(_)) {
@@ -767,6 +781,9 @@ impl TcpStream {
 
     /// connect within `timeout_ms` (0: the system's own timeout)
     pub fn connect(addr: &SocketAddr, timeout_ms: u32) -> NetResult<TcpStream> {
+        if !crate::policy::net_connect_allowed(addr) {
+            return Err(denied());
+        }
         let s = Sock(sys::socket(family(addr), 1, 6)?);
         let sa = encode_sockaddr(addr);
         if timeout_ms == 0 {
@@ -886,13 +903,20 @@ pub struct UdpSocket {
 }
 
 impl UdpSocket {
+    /// a socket on addr; a fixed port needs net.listen, port 0 (a client's) does not
     pub fn bind(addr: &SocketAddr) -> NetResult<UdpSocket> {
+        if addr.port != 0 && !crate::policy::net_listen_allowed(addr) {
+            return Err(denied());
+        }
         let s = Sock(sys::socket(family(addr), 2, 17)?);
         sys::bind_to(s.0, &encode_sockaddr(addr))?;
         Ok(UdpSocket { s })
     }
 
     pub fn send_to(&self, buf: &[u8], to: &SocketAddr) -> NetResult<usize> {
+        if !crate::policy::net_connect_allowed(to) {
+            return Err(denied());
+        }
         sys::send_to(self.s.0, buf, &encode_sockaddr(to))
     }
 
@@ -941,6 +965,9 @@ pub struct UnixListener {
 impl UnixListener {
     /// listen on a socket file; one left over at `path` is removed first
     pub fn bind(path: &str) -> NetResult<UnixListener> {
+        if !crate::policy::fs_allowed(path, crate::policy::FS_WRITE) {
+            return Err(denied());
+        }
         let a = unix_addr(path)?;
         crate::delete_raw(path);
         let s = Sock(sys::socket(AF_UNIX, 1, 0)?);
@@ -977,6 +1004,9 @@ impl Drop for UnixListener {
 
 /// connect to a socket file within `timeout_ms` (0: block)
 pub fn connect_unix(path: &str, timeout_ms: u32) -> NetResult<UnixStream> {
+    if !crate::policy::fs_allowed(path, crate::policy::FS_WRITE) {
+        return Err(denied());
+    }
     let a = unix_addr(path)?;
     let s = Sock(sys::socket(AF_UNIX, 1, 0)?);
     if timeout_ms == 0 {
@@ -1016,11 +1046,16 @@ pub fn resolve(host: &str, port: u16) -> NetResult<Vec<SocketAddr>> {
     }
     #[cfg(windows)]
     {
+        if !crate::policy::net_name_allowed(h) {
+            return Err(denied());
+        }
         let ips = sys::resolve_system(h)?;
         if ips.is_empty() {
             return Err(NetError::new(NetErrorKind::NotFound, 0));
         }
-        Ok(ips.into_iter().map(|ip| SocketAddr::new(ip, port)).collect())
+        let addrs: Vec<SocketAddr> = ips.into_iter().map(|ip| SocketAddr::new(ip, port)).collect();
+        crate::policy::net_resolved(h, &addrs);
+        Ok(addrs)
     }
     #[cfg(target_os = "linux")]
     {

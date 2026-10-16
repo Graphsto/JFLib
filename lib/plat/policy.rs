@@ -8,6 +8,9 @@
 //   plugin_allowed(path) / print_allowed() -> bool
 //                                          a refusal is recorded (denials) and printed once
 //                                          per target to stderr: "PERMDENY kind target"
+//   net_connect_allowed(addr) / net_listen_allowed(addr) / net_name_allowed(host) -> bool
+//   net_resolved(host, addrs)              (resolvers) the addresses of a permitted name:
+//                                          connections to them follow that name's rules
 //   Key::grant(path, FS_*) / Key::grant_dir(dir, FS_*)   a file / folder the user handed over
 //                                          (file dialog, drop, command line); needs fs.user
 //   Key::trusted(f)                        f runs on this thread without the file checks (the
@@ -30,6 +33,15 @@
 //   url SCHEME..|*        open_url schemes (https, mailto, ...)
 //   plugins PATTERN..     native libraries for lib_open
 //   print                 plat::print
+//   net.connect HOST:PORT..   TCP connections and UDP datagrams to HOST (a name, *.name for
+//                         every name below it, an IPv4 / [IPv6] address, a block 10.0.0.0/8
+//                         or [fd00::]/8, localhost = the loopback addresses, * = any) on PORT
+//                         (a number, a range 8000-8099 or *); names are checked when they are
+//                         resolved, their addresses then count for the name; with any name
+//                         rule, port 53 (DNS) is open too
+//   net.listen ADDR:PORT..    TCP listeners and UDP sockets with a fixed port on ADDR (an
+//                         address, a block, localhost or *; 0.0.0.0 / [::] = every interface)
+//                         and PORT (port 0 = any free one: the rule needs 0 or *)
 // A PATTERN is an absolute path (X:/.. and //server/share/.. count on Windows only, /.. on
 // Linux only), or starts with $CONFIG $TEMP $HOME $EXE $FONTS (a variable without a value
 // drops the pattern); '*' / '?' match inside one segment, a '**' segment any
@@ -68,6 +80,7 @@ struct Rule {
 }
 
 #[derive(Default)]
+#[cfg_attr(not(any(windows, target_os = "linux")), allow(dead_code))]
 struct Policy {
     fs: Vec<Rule>,
     explicit_read: bool,
@@ -78,6 +91,10 @@ struct Policy {
     urls: Vec<String>,
     plugins: Vec<Vec<String>>,
     print: bool,
+    connect: Vec<NetRule>,
+    listen: Vec<NetRule>,
+    /// the addresses of resolved names with the port ranges of their rules
+    resolved: Vec<([u8; 16], u16, u16)>,
 }
 
 static ACTIVE: AtomicBool = AtomicBool::new(false);
@@ -354,6 +371,19 @@ fn parse(text: &str) -> Result<Policy, String> {
                     }
                 }
             }
+            "net.connect" | "net.listen" => {
+                if args.is_empty() {
+                    return bad("expected at least one HOST:PORT");
+                }
+                for a in &args {
+                    let r = net_rule(a, key == "net.listen").map_err(|e| alloc::format!("PERMISSIONS:{}: {}", i + 1, e))?;
+                    if key == "net.listen" {
+                        p.listen.push(r);
+                    } else {
+                        p.connect.push(r);
+                    }
+                }
+            }
             "url" => {
                 if args.is_empty() {
                     return bad("expected at least one scheme or *");
@@ -366,7 +396,7 @@ fn parse(text: &str) -> Result<Policy, String> {
                     p.urls.push(a.to_ascii_lowercase());
                 }
             }
-            _ => return bad("unknown permission (fs.read, fs.write, fs.user, process, url, plugins, print)"),
+            _ => return bad("unknown permission (fs.read, fs.write, fs.user, process, url, plugins, print, net.connect, net.listen)"),
         }
     }
     Ok(p)
@@ -454,6 +484,216 @@ fn exe_dir() -> Option<String> {
 #[cfg(not(any(windows, target_os = "linux")))]
 fn exe_dir() -> Option<String> {
     None
+}
+
+// ---------------------------------------------------------------- the network
+
+/// the host of a net.connect / net.listen rule (the browser keeps the rules unused)
+#[cfg_attr(not(any(windows, target_os = "linux")), allow(dead_code))]
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum Host {
+    Any,
+    /// a DNS name in lower case; "*.example.org": every name below example.org
+    Name(String),
+    /// an address block: 16 bytes (IPv4 as ::ffff:a.b.c.d) and the prefix bits
+    Block([u8; 16], u8),
+    /// 127.0.0.0/8 and ::1
+    Loopback,
+}
+
+#[cfg_attr(not(any(windows, target_os = "linux")), allow(dead_code))]
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct NetRule {
+    host: Host,
+    lo: u16,
+    hi: u16,
+}
+
+#[cfg(any(windows, target_os = "linux"))]
+const RESOLVED_MAX: usize = 4096;
+#[cfg(any(windows, target_os = "linux"))]
+const V6_LOOPBACK: [u8; 16] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1];
+
+impl Host {
+    fn has_name(&self, h: &str) -> bool {
+        match self {
+            Host::Any => true,
+            Host::Name(n) => match n.strip_prefix("*.") {
+                Some(base) => h.len() > base.len() + 1 && h.ends_with(base) && h.as_bytes()[h.len() - base.len() - 1] == b'.',
+                None => h == n,
+            },
+            _ => false,
+        }
+    }
+
+    #[cfg(any(windows, target_os = "linux"))]
+    fn has_ip(&self, ip: &[u8; 16]) -> bool {
+        match self {
+            Host::Any => true,
+            Host::Name(_) => false,
+            Host::Block(net, bits) => prefix_eq(ip, net, *bits),
+            Host::Loopback => prefix_eq(ip, &mapped([127, 0, 0, 0]), 104) || *ip == V6_LOOPBACK,
+        }
+    }
+}
+
+fn mapped(v4: [u8; 4]) -> [u8; 16] {
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, v4[0], v4[1], v4[2], v4[3]]
+}
+
+#[cfg(any(windows, target_os = "linux"))]
+fn prefix_eq(a: &[u8; 16], b: &[u8; 16], bits: u8) -> bool {
+    let (whole, rest) = ((bits / 8) as usize, bits % 8);
+    if a[..whole] != b[..whole] {
+        return false;
+    }
+    rest == 0 || (a[whole] ^ b[whole]) & (0xFFu8 << (8 - rest)) == 0
+}
+
+// "HOST:PORT" of the manifest
+fn net_rule(a: &str, listen: bool) -> Result<NetRule, String> {
+    let err = || alloc::format!("{} is not HOST:PORT (example.org:443, *.example.org:*, 10.0.0.0/8:22, [::1]:8080, *:*)", a);
+    let k = a.rfind(':').ok_or_else(err)?;
+    let (host, port) = (&a[..k], &a[k + 1..]);
+    let num = |s: &str| if !s.is_empty() && s.bytes().all(|c| c.is_ascii_digit()) { s.parse::<u16>().ok() } else { None };
+    let (lo, hi) = if port == "*" {
+        (0, u16::MAX)
+    } else if let Some((x, y)) = port.split_once('-') {
+        match (num(x), num(y)) {
+            (Some(x), Some(y)) if x <= y => (x, y),
+            _ => return Err(err()),
+        }
+    } else {
+        let n = num(port).ok_or_else(err)?;
+        (n, n)
+    };
+    let host = if host == "*" {
+        Host::Any
+    } else if host.eq_ignore_ascii_case("localhost") {
+        Host::Loopback
+    } else {
+        let (h, bits) = match host.rsplit_once('/') {
+            Some((h, b)) if !b.is_empty() && b.bytes().all(|c| c.is_ascii_digit()) => (h, Some(b.parse::<u32>().map_err(|_| err())?)),
+            Some(_) => return Err(err()),
+            None => (host, None),
+        };
+        let bracketed = h.len() >= 2 && h.starts_with('[') && h.ends_with(']');
+        let bare = if bracketed { &h[1..h.len() - 1] } else { h };
+        if !bracketed && bare.contains(':') {
+            return Err(alloc::format!("{}: an IPv6 address needs brackets ([::1]:80)", a));
+        }
+        match ip16(bare) {
+            Some((ip, v4)) => {
+                let max = if v4 { 32 } else { 128 };
+                let b = bits.unwrap_or(max);
+                if b > max || (v4 && bracketed) {
+                    return Err(err());
+                }
+                Host::Block(ip, (b + if v4 { 96 } else { 0 }) as u8)
+            }
+            None if bracketed || bits.is_some() => return Err(err()),
+            None if listen => return Err(alloc::format!("{}: net.listen takes an address, a block, localhost or *", a)),
+            None => {
+                let n = bare.trim_end_matches('.').to_ascii_lowercase();
+                let labels = n.strip_prefix("*.").unwrap_or(&n);
+                let ok = !labels.is_empty()
+                    && labels.split('.').all(|l| !l.is_empty() && l.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'-' || c == b'_'));
+                if !ok {
+                    return Err(err());
+                }
+                Host::Name(n)
+            }
+        }
+    };
+    Ok(NetRule { host, lo, hi })
+}
+
+// an IPv4 / IPv6 address -> 16 bytes, is IPv4
+#[cfg(any(windows, target_os = "linux"))]
+fn ip16(s: &str) -> Option<([u8; 16], bool)> {
+    match crate::net::IpAddr::parse(s)? {
+        crate::net::IpAddr::V4(a) => Some((mapped(a), true)),
+        crate::net::IpAddr::V6(a) => Some((a, false)),
+    }
+}
+
+// the browser has no sockets: a dotted IPv4 address (numeric labels) still parses, the rules
+// are never asked
+#[cfg(not(any(windows, target_os = "linux")))]
+fn ip16(s: &str) -> Option<([u8; 16], bool)> {
+    let p: Vec<&str> = s.split('.').collect();
+    let v: Vec<u8> = p.iter().filter_map(|x| x.parse::<u8>().ok()).collect();
+    if p.len() == 4 && v.len() == 4 { Some((mapped([v[0], v[1], v[2], v[3]]), true)) } else if s.contains(':') { Some(([0; 16], false)) } else { None }
+}
+
+#[cfg(any(windows, target_os = "linux"))]
+fn to16(ip: &crate::net::IpAddr) -> [u8; 16] {
+    match ip {
+        crate::net::IpAddr::V4(a) => mapped(*a),
+        crate::net::IpAddr::V6(a) => *a,
+    }
+}
+
+/// whether a TCP connection or a UDP datagram to addr is allowed: a net.connect rule with
+/// that address, an address a permitted name resolved to, or port 53 (DNS) with name rules
+#[cfg(any(windows, target_os = "linux"))]
+pub fn net_connect_allowed(addr: &crate::net::SocketAddr) -> bool {
+    if !active() {
+        return true;
+    }
+    let ip = to16(&addr.ip);
+    let port = addr.port;
+    let ok = POLICY.lock().as_ref().is_none_or(|p| {
+        p.connect.iter().any(|r| (r.lo..=r.hi).contains(&port) && r.host.has_ip(&ip))
+            || p.resolved.iter().any(|(a, lo, hi)| *a == ip && (*lo..=*hi).contains(&port))
+            || (port == 53 && p.connect.iter().any(|r| matches!(r.host, Host::Any | Host::Name(_))))
+    });
+    ok || deny("net.connect", &alloc::format!("{}", addr))
+}
+
+/// whether a TCP listener (or a UDP socket with a fixed port) may bind addr
+#[cfg(any(windows, target_os = "linux"))]
+pub fn net_listen_allowed(addr: &crate::net::SocketAddr) -> bool {
+    if !active() {
+        return true;
+    }
+    let ip = to16(&addr.ip);
+    let ok = POLICY.lock().as_ref().is_none_or(|p| p.listen.iter().any(|r| (r.lo..=r.hi).contains(&addr.port) && r.host.has_ip(&ip)));
+    ok || deny("net.listen", &alloc::format!("{}", addr))
+}
+
+/// whether host may be resolved: a net.connect rule names it (or allows every host)
+pub fn net_name_allowed(host: &str) -> bool {
+    if !active() {
+        return true;
+    }
+    let h = host.trim_end_matches('.').to_ascii_lowercase();
+    let ok = POLICY.lock().as_ref().is_none_or(|p| p.connect.iter().any(|r| r.host.has_name(&h)));
+    ok || deny("net.connect", host)
+}
+
+/// (resolvers) host resolved to addrs: connections to them get the ports of host's rules
+#[cfg(any(windows, target_os = "linux"))]
+pub fn net_resolved(host: &str, addrs: &[crate::net::SocketAddr]) {
+    if !active() {
+        return;
+    }
+    let h = host.trim_end_matches('.').to_ascii_lowercase();
+    let mut g = POLICY.lock();
+    let Some(p) = g.as_mut() else { return };
+    let ranges: Vec<(u16, u16)> =
+        p.connect.iter().filter(|r| matches!(r.host, Host::Name(_)) && r.host.has_name(&h)).map(|r| (r.lo, r.hi)).collect();
+    for a in addrs {
+        let ip = to16(&a.ip);
+        for &(lo, hi) in &ranges {
+            if !p.resolved.contains(&(ip, lo, hi)) {
+                if p.resolved.len() == RESOLVED_MAX {
+                    p.resolved.remove(0);
+                }
+                p.resolved.push((ip, lo, hi));
+            }
+        }
+    }
 }
 
 // ---------------------------------------------------------------- paths

@@ -52,6 +52,7 @@ LIBS and found by name the same way (source_crates).
 """
 import argparse
 import hashlib
+import ipaddress
 import json
 import os
 import re
@@ -375,7 +376,7 @@ def app_targets(name):
 # apps/NAME/PERMISSIONS: the app's permissions (docs/PERMISSIONS.md, lib/plat/policy.rs).  The
 # build checks the syntax and hands the text to rustc as JFGUI_PERMISSIONS; ui::main! installs
 # it at start-up.  Without the file the app may do everything (as before).
-PERM_KEYS_ARGS = ("fs.read", "fs.write", "process", "plugins", "url")
+PERM_KEYS_ARGS = ("fs.read", "fs.write", "process", "plugins", "url", "net.connect", "net.listen")
 PERM_KEYS_FLAG = ("fs.user", "print")
 PERM_VARS = ("CONFIG", "TEMP", "HOME", "EXE", "FONTS")
 
@@ -390,6 +391,43 @@ def perm_pattern_error(a):
     if re.match(r"^[A-Za-z]:[/\\]", a) or a.startswith(("//", "\\\\", "/")):
         return None
     return f"{a} is not absolute (start it with /, X:/ or a variable)"
+
+
+def perm_net_error(a, listen):
+    """None when a is a valid HOST:PORT of net.connect / net.listen (as net_rule in policy.rs)"""
+    bad = f"{a} is not HOST:PORT (example.org:443, *.example.org:*, 10.0.0.0/8:22, [::1]:8080, *:*)"
+    host, sep, port = a.rpartition(":")
+    if not sep:
+        return bad
+    lo_hi = port.split("-") if port != "*" else ["0", "65535"]
+    if len(lo_hi) > 2 or not all(x.isdigit() and int(x) <= 65535 for x in lo_hi) or int(lo_hi[0]) > int(lo_hi[-1]):
+        return bad
+    if host == "*" or host.lower() == "localhost":
+        return None
+    h, slash, bits = host.rpartition("/") if "/" in host else (host, "", "")
+    if slash and not bits.isdigit():
+        return bad
+    bracketed = len(h) >= 2 and h.startswith("[") and h.endswith("]")
+    bare = h[1:-1] if bracketed else h
+    if not bracketed and ":" in bare:
+        return f"{a}: an IPv6 address needs brackets ([::1]:80)"
+    try:
+        ip = ipaddress.ip_address(bare)
+    except ValueError:
+        ip = None
+    if ip is not None:
+        if (ip.version == 4) == bracketed or (slash and int(bits) > ip.max_prefixlen):
+            return bad
+        return None
+    if bracketed or slash:
+        return bad
+    if listen:
+        return f"{a}: net.listen takes an address, a block, localhost or *"
+    labels = bare.rstrip(".").lower()
+    labels = labels[2:] if labels.startswith("*.") else labels
+    if not labels or not all(re.fullmatch(r"[a-z0-9_-]+", x) for x in labels.split(".")):
+        return bad
+    return None
 
 
 def app_permissions(name):
@@ -414,6 +452,9 @@ def app_permissions(name):
                 if key == "url":
                     if a != "*" and not re.fullmatch(r"[A-Za-z0-9+.-]+", a):
                         raise BuildError(f"{where}:{i}: {a} is not a URL scheme (https, mailto, ... or *)")
+                elif key in ("net.connect", "net.listen"):
+                    if (err := perm_net_error(a, key == "net.listen")):
+                        raise BuildError(f"{where}:{i}: {err}")
                 elif key == "process" and not re.search(r"[/\\$]", a):
                     continue                                    # a program name looked up in PATH
                 elif (err := perm_pattern_error(a)):

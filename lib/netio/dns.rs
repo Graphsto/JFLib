@@ -9,6 +9,10 @@
 // Queries: A and AAAA over UDP (2 s per server and attempt, two rounds), over TCP when the answer
 // is truncated; an answer must come from the server asked and carry the query's id and question.
 // IPv4 addresses come first.  Not here: DNSSEC validation, mDNS, caching.
+//
+// The app's permissions: a name its net.connect rules do not cover fails with
+// NetErrorKind::Denied before any query; the addresses of a covered name are registered
+// (plat::policy::net_resolved), so connections to them follow that name's ports.
 
 use alloc::format;
 use alloc::string::String;
@@ -253,6 +257,10 @@ pub fn resolve_with(host: &str, port: u16, cfg: &Config) -> NetResult<Vec<Socket
     if h.is_empty() || h.len() > 253 || !h.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'.' || b == b'_') {
         return Err(not_found());
     }
+    // the app's permissions: only names of its net.connect rules are looked up
+    if !plat::policy::net_name_allowed(h) {
+        return Err(NetError::new(NetErrorKind::Denied, 0));
+    }
     let mut ips = hosts_lookup(&cfg.hosts, h);
     if ips.is_empty() {
         // the names to try: as given first when it has enough dots (or ends with a dot)
@@ -291,7 +299,9 @@ pub fn resolve_with(host: &str, port: u16, cfg: &Config) -> NetResult<Vec<Socket
         }
     }
     ips.sort_by_key(|ip| matches!(ip, IpAddr::V6(_)));
-    Ok(ips.into_iter().map(|ip| SocketAddr::new(ip, port)).collect())
+    let addrs: Vec<SocketAddr> = ips.into_iter().map(|ip| SocketAddr::new(ip, port)).collect();
+    plat::policy::net_resolved(h, &addrs); // connections to them follow the name's rules
+    Ok(addrs)
 }
 
 /// the addresses of a host (see the top of this file)

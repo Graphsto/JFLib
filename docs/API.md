@@ -10912,6 +10912,10 @@ net -- TCP, UDP and Unix domain sockets (IPv4 and IPv6) with timeouts
             (GetAddrInfoW).  Linux names go through netio::dns (no libc here).
   NetError: the kinds callers act on, with the OS code
 
+The app's permissions (policy.rs, net.connect / net.listen) are checked before connect,
+bind, send_to and a name lookup; Unix sockets follow the file rules (fs.write on the path).
+A refusal is NetErrorKind::Denied.
+
 Timeouts are readiness waits (WSAPoll / poll) before each call, never SO_RCVTIMEO: after a
 timed-out blocking receive Windows leaves the connection in an undefined state.  Sockets are
 not inherited by child processes; sends never raise SIGPIPE.  Every method takes &self, so
@@ -10954,6 +10958,7 @@ one thread may read while another writes (Arc<TcpStream>).
   - `Unreachable`
   - `NotFound`
   - `Eof` -- the peer closed the connection before all bytes arrived (read_exact)
+  - `Denied` -- the app's permissions (apps/NAME/PERMISSIONS) do not allow the address or name
   - `Other`
 
 - **`struct NetError`**
@@ -11009,6 +11014,7 @@ one thread may read while another writes (Arc<TcpStream>).
 **`impl UdpSocket`**
 
 - **`fn bind(addr: &SocketAddr) -> NetResult<UdpSocket>`**
+  a socket on addr; a fixed port needs net.listen, port 0 (a client's) does not
 - **`fn send_to(&self, buf: &[u8], to: &SocketAddr) -> NetResult<usize>`**
 - **`fn recv_from(&self, buf: &mut [u8], timeout_ms: u32) -> NetResult<(usize, SocketAddr)>`**
   one datagram within `timeout_ms` (0: block)
@@ -11339,6 +11345,9 @@ start-up, then checked by the public file, process, shell, plugin and print func
   plugin_allowed(path) / print_allowed() -> bool
                                          a refusal is recorded (denials) and printed once
                                          per target to stderr: "PERMDENY kind target"
+  net_connect_allowed(addr) / net_listen_allowed(addr) / net_name_allowed(host) -> bool
+  net_resolved(host, addrs)              (resolvers) the addresses of a permitted name:
+                                         connections to them follow that name's rules
   Key::grant(path, FS_*) / Key::grant_dir(dir, FS_*)   a file / folder the user handed over
                                          (file dialog, drop, command line); needs fs.user
   Key::trusted(f)                        f runs on this thread without the file checks (the
@@ -11361,6 +11370,15 @@ Manifest: one rule per line, '#' starts a comment, a key may repeat:
   url SCHEME..|*        open_url schemes (https, mailto, ...)
   plugins PATTERN..     native libraries for lib_open
   print                 plat::print
+  net.connect HOST:PORT..   TCP connections and UDP datagrams to HOST (a name, *.name for
+                        every name below it, an IPv4 / [IPv6] address, a block 10.0.0.0/8
+                        or [fd00::]/8, localhost = the loopback addresses, * = any) on PORT
+                        (a number, a range 8000-8099 or *); names are checked when they are
+                        resolved, their addresses then count for the name; with any name
+                        rule, port 53 (DNS) is open too
+  net.listen ADDR:PORT..    TCP listeners and UDP sockets with a fixed port on ADDR (an
+                        address, a block, localhost or *; 0.0.0.0 / [::] = every interface)
+                        and PORT (port 0 = any free one: the rule needs 0 or *)
 A PATTERN is an absolute path (X:/.. and //server/share/.. count on Windows only, /.. on
 Linux only), or starts with $CONFIG $TEMP $HOME $EXE $FONTS (a variable without a value
 drops the pattern); '*' / '?' match inside one segment, a '**' segment any
@@ -11431,6 +11449,19 @@ DENIALS_MAX: usize = 64
 - **`fn font_dirs() -> Vec<String>`**
   the system font folders in the order fontdb scans them: jfgui_FONTDIRS (';' separated,
   on Linux also ':'), else the Windows / XDG folders
+
+- **`fn net_connect_allowed(addr: &crate::net::SocketAddr) -> bool`**
+  whether a TCP connection or a UDP datagram to addr is allowed: a net.connect rule with
+  that address, an address a permitted name resolved to, or port 53 (DNS) with name rules
+
+- **`fn net_listen_allowed(addr: &crate::net::SocketAddr) -> bool`**
+  whether a TCP listener (or a UDP socket with a fixed port) may bind addr
+
+- **`fn net_name_allowed(host: &str) -> bool`**
+  whether host may be resolved: a net.connect rule names it (or allows every host)
+
+- **`fn net_resolved(host: &str, addrs: &[crate::net::SocketAddr])`**
+  (resolvers) host resolved to addrs: connections to them get the ports of host's rules
 
 - **`fn normalize(path: &str) -> Option<String>`**
   path as an absolute, normalised path of this OS (relative paths against cwd()), or None
@@ -15809,6 +15840,10 @@ dns -- host names to addresses
 Queries: A and AAAA over UDP (2 s per server and attempt, two rounds), over TCP when the answer
 is truncated; an answer must come from the server asked and carry the query's id and question.
 IPv4 addresses come first.  Not here: DNSSEC validation, mDNS, caching.
+
+The app's permissions: a name its net.connect rules do not cover fails with
+NetErrorKind::Denied before any query; the addresses of a covered name are registered
+(plat::policy::net_resolved), so connections to them follow that name's ports.
 ```
 
 - **`struct Config`**

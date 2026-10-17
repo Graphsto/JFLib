@@ -47,7 +47,7 @@ the same .deb layout.
 
 | File | Content |
 |---|---|
-| `apps/NAME/PACKAGE` | `key=value` lines: `display` (shown name), `version`, `publisher`, `summary` (one line, .deb / .desktop comment), `description` (one line), `generic` (.desktop GenericName), `categories` (.desktop), `deb_name`, `default_win` / `default_linux` (preselected style), `styles` (the variants, in order) |
+| `apps/NAME/PACKAGE` | `key=value` lines: `display` (shown name), `version`, `publisher`, `summary` (one line, .deb / .desktop comment), `description` (one line), `generic` (.desktop GenericName), `categories` (.desktop), `deb_name`, `default_win` / `default_linux` (preselected style), `styles` (the variants, in order); optional `filetypes` and `schemes` (the file types and URL schemes the app opens, below) |
 | `apps/NAME/res/app.ico` | icon resource 1 of the Windows exe (`build_rs.py` compiles it with `llvm-rc` and links it: window, taskbar, Explorer, shortcuts) |
 | `apps/NAME/res/app_{48,128,256}.png` | Linux icons (hicolor theme) |
 | `styles/S/INFO` | line 1: the style's name in the setup / debconf, line 2: a one-line description (`--impl asm`: `legacy/ASMLIB/styles/S/INFO`) |
@@ -92,6 +92,15 @@ in the winui style. The packaged setup is that exe with a payload and a trailer 
   deletes `uninstall.exe` and the folder after the process ended.
 * Running the setup again installs another style over the old one (the app's settings stay).
 * Options: `--dir PATH`, `--style ID`.
+* **File types and URL schemes** (`PACKAGE` `filetypes=` / `schemes=`, carried in the
+  manifest; `apps/installer/assoc.rs`): for each type a ProgID `<app>.<ext>` under
+  `HKCU\Software\Classes` (description, `DefaultIcon`, `shell\open\command` = `"<exe>" "%1"`) and
+  the app in `.<ext>\OpenWithProgids` ("Open with"). An `own` type also becomes the default of its
+  extensions (`.<ext>` default value and `Content Type`). A scheme gets `HKCU\Software\Classes\<scheme>`
+  (`URL:<display>`, `URL Protocol`, `DefaultIcon`, the open command). `SHChangeNotify` tells
+  Explorer. `install.ini` `assoc=` lists what was added (`T:` key trees, `V:` values), and
+  `uninstall.exe` removes exactly that. In test mode the values go to
+  `<ASMINST_SHELL_DIR>\assoc.txt` (`subkey|name=value` lines).
 * **Test mode**: with `ASMINST_SHELL_DIR=DIR` the desktop and the start menu are `DIR\Desktop`
   and `DIR\Programs`, and the registry values go to `DIR\registry.txt` -- a test never touches
   the user's shell or registry. Always run the setup with `--script` (and `--dir` into a test
@@ -142,6 +151,21 @@ them (`/usr/lib/PaintCraft/jxlenc.so`: the program looks next to its real path);
 `update-alternatives` and points `/usr/bin/<deb>` at the chosen one. Change it later with
 `sudo dpkg-reconfigure <deb>`. Also installed: `/usr/share/applications/<deb>.desktop` and the
 hicolor icons. Text files are written with LF line ends (maintainer scripts).
+With `filetypes=` / `schemes=` the `.desktop` file lists the MIME types and
+`x-scheme-handler/<scheme>` in `MimeType=`, and `Exec` passes `%U` (schemes) or `%F`. `own` types
+get a shared-mime-info package `/usr/share/mime/packages/<deb>.xml` (glob patterns,
+description), and `postinst` runs `update-mime-database`.
+
+```
+# apps/PaintCraft/PACKAGE
+filetypes=png|image/png|PNG-Bild; jpg,jpeg|image/jpeg|JPEG-Bild; pdn|image/x-paint.net|Paint.NET-Bild
+# an app's own format and its links (myapp://...):
+filetypes=myd|application/x-mydoc|MyApp-Dokument|own
+schemes=myapp
+```
+
+The program receives a file or a URL as a command-line argument. With `AF_SINGLE_INSTANCE`
+([GUIDE.md](GUIDE.md) section 7), a running instance receives it as `UIC_OPEN` instead.
 
 ```
 sudo apt install ./build/dist/PaintCraft_0.1.0_amd64.deb

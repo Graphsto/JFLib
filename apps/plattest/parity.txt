@@ -7,4 +7,5 @@ rsonly guardlimit.uis   # Rust build only (was apps/plattest/tests)
 rsonly print.uis   # Rust build only (was apps/plattest/tests)
 rsonly policy.uis  # The permission manifest has no assembly counterpart.
 rsonly vfs.uis     # The vfs layer has no assembly counterpart.
+rsonly instance.uis # The single-instance channel has no assembly counterpart.
 rsonly cliprich.uis # Rich clipboard API and CF_HTML framing have no assembly counterpart.

@@ -57,7 +57,7 @@ Not listed here: `simd` (the SSE2 / AVX2 kernel layer, see `README.md`, "SIMD ke
 - [fx](#fx) -- effects and adjustments
   <br>[lib.rs](#fx-crate-root) · [adj.rs](#fxadjrs) · [artistic.rs](#fxartisticrs) · [enhance.rs](#fxenhancers) · [blur.rs](#fxblurrs) · [color.rs](#fxcolorrs) · [conv.rs](#fxconvrs) · [distort.rs](#fxdistortrs) · [hist.rs](#fxhistrs) · [lochist.rs](#fxlochistrs) · [lut.rs](#fxlutrs) · [noise.rs](#fxnoisers) · [object.rs](#fxobjectrs) · [perlin.rs](#fxperlinrs) · [photo.rs](#fxphotors) · [render.rs](#fxrenderrs) · [stylize.rs](#fxstylizers) · [warp.rs](#fxwarprs)
 - [plat](#plat) -- the platform layer: process, files, threads, windows (Windows and Linux)
-  <br>[lib.rs](#plat-crate-root) · [process.rs](#platprocessrs) · [process_win.rs (Windows)](#platprocess_winrs-windows) · [process_linux.rs (Linux)](#platprocess_linuxrs-linux) · [sync.rs](#platsyncrs) · [net.rs](#platnetrs) · [fs.rs](#platfsrs) · [service.rs](#platservicers) · [watch.rs](#platwatchrs) · [certs.rs](#platcertsrs) · [rand.rs](#platrandrs) · [cpu.rs](#platcpurs) · [capabilities.rs](#platcapabilitiesrs) · [policy.rs](#platpolicyrs) · [vfs.rs](#platvfsrs) · [guarded.rs](#platguardedrs) · [control_stream.rs](#platcontrol_streamrs) · [control_ipc_win.rs (Windows)](#platcontrol_ipc_winrs-windows) · [control_ipc_linux.rs (Linux)](#platcontrol_ipc_linuxrs-linux) · [pool.rs](#platpoolrs) · [win.rs (Windows)](#platwinrs-windows) · [win_api.rs (Windows)](#platwin_apirs-windows) · [win_clip.rs (Windows)](#platwin_cliprs-windows) · [win_filedlg.rs (Windows)](#platwin_filedlgrs-windows) · [win_pen.rs (Windows)](#platwin_penrs-windows) · [win_popup.rs (Windows)](#platwin_popuprs-windows) · [win_shell.rs (Windows)](#platwin_shellrs-windows) · [win_test.rs (Windows)](#platwin_testrs-windows) · [win_inst.rs (Windows)](#platwin_instrs-windows) · [win_sys.rs (Windows)](#platwin_sysrs-windows) · [win_thread.rs (Windows)](#platwin_threadrs-windows) · [win_print.rs (Windows)](#platwin_printrs-windows) · [win_lib.rs (Windows)](#platwin_librs-windows) · [linux.rs (Linux)](#platlinuxrs-linux) · [linux_disp.rs (Linux)](#platlinux_disprs-linux) · [linux_wl.rs (Linux)](#platlinux_wlrs-linux) · [linux_xkb.rs (Linux)](#platlinux_xkbrs-linux) · [linux_x11.rs (Linux)](#platlinux_x11rs-linux) · [linux_portal.rs (Linux)](#platlinux_portalrs-linux) · [linux_sys.rs (Linux)](#platlinux_sysrs-linux) · [linux_thread.rs (Linux)](#platlinux_threadrs-linux) · [linux_print.rs (Linux)](#platlinux_printrs-linux) · [linux_elfload.rs (Linux)](#platlinux_elfloadrs-linux) · [web.rs](#platwebrs) · [web_files.rs](#platweb_filesrs) · [web_windows.rs](#platweb_windowsrs) · [android_ime.rs](#platandroid_imers) · [web_threads.rs](#platweb_threadsrs) · [clipdrop.rs](#platclipdroprs) · [cliprich.rs](#platcliprichrs) · [consts.rs](#platconstsrs) · [evq.rs](#platevqrs) · [ime.rs](#platimers) · [icc.rs](#platiccrs) · [pwin0.rs](#platpwin0rs) · [plib.rs](#platplibrs) · [print.rs](#platprintrs) · [modhost.rs](#platmodhostrs) · [modabi.rs](#platmodabirs)
+  <br>[lib.rs](#plat-crate-root) · [process.rs](#platprocessrs) · [process_win.rs (Windows)](#platprocess_winrs-windows) · [process_linux.rs (Linux)](#platprocess_linuxrs-linux) · [sync.rs](#platsyncrs) · [net.rs](#platnetrs) · [fs.rs](#platfsrs) · [service.rs](#platservicers) · [watch.rs](#platwatchrs) · [certs.rs](#platcertsrs) · [rand.rs](#platrandrs) · [cpu.rs](#platcpurs) · [capabilities.rs](#platcapabilitiesrs) · [policy.rs](#platpolicyrs) · [vfs.rs](#platvfsrs) · [instance.rs](#platinstancers) · [guarded.rs](#platguardedrs) · [control_stream.rs](#platcontrol_streamrs) · [control_ipc_win.rs (Windows)](#platcontrol_ipc_winrs-windows) · [control_ipc_linux.rs (Linux)](#platcontrol_ipc_linuxrs-linux) · [pool.rs](#platpoolrs) · [win.rs (Windows)](#platwinrs-windows) · [win_api.rs (Windows)](#platwin_apirs-windows) · [win_clip.rs (Windows)](#platwin_cliprs-windows) · [win_filedlg.rs (Windows)](#platwin_filedlgrs-windows) · [win_pen.rs (Windows)](#platwin_penrs-windows) · [win_popup.rs (Windows)](#platwin_popuprs-windows) · [win_shell.rs (Windows)](#platwin_shellrs-windows) · [win_test.rs (Windows)](#platwin_testrs-windows) · [win_inst.rs (Windows)](#platwin_instrs-windows) · [win_sys.rs (Windows)](#platwin_sysrs-windows) · [win_thread.rs (Windows)](#platwin_threadrs-windows) · [win_print.rs (Windows)](#platwin_printrs-windows) · [win_lib.rs (Windows)](#platwin_librs-windows) · [linux.rs (Linux)](#platlinuxrs-linux) · [linux_disp.rs (Linux)](#platlinux_disprs-linux) · [linux_wl.rs (Linux)](#platlinux_wlrs-linux) · [linux_xkb.rs (Linux)](#platlinux_xkbrs-linux) · [linux_x11.rs (Linux)](#platlinux_x11rs-linux) · [linux_portal.rs (Linux)](#platlinux_portalrs-linux) · [linux_sys.rs (Linux)](#platlinux_sysrs-linux) · [linux_thread.rs (Linux)](#platlinux_threadrs-linux) · [linux_print.rs (Linux)](#platlinux_printrs-linux) · [linux_elfload.rs (Linux)](#platlinux_elfloadrs-linux) · [web.rs](#platwebrs) · [web_files.rs](#platweb_filesrs) · [web_windows.rs](#platweb_windowsrs) · [android_ime.rs](#platandroid_imers) · [web_threads.rs](#platweb_threadsrs) · [clipdrop.rs](#platclipdroprs) · [cliprich.rs](#platcliprichrs) · [consts.rs](#platconstsrs) · [evq.rs](#platevqrs) · [ime.rs](#platimers) · [icc.rs](#platiccrs) · [pwin0.rs](#platpwin0rs) · [plib.rs](#platplibrs) · [print.rs](#platprintrs) · [modhost.rs](#platmodhostrs) · [modabi.rs](#platmodabirs)
 - [base](#base) -- UTF-8, command line, settings files, numbers and text
   <br>[lib.rs](#base-crate-root) · [ini.rs](#baseinirs) · [encoding.rs](#baseencodingrs) · [xml.rs](#basexmlrs) · [num.rs](#basenumrs)
 - [datetime](#datetime) -- timestamps, civil dates, RFC 3339, IANA time zones with DST, cron schedules
@@ -150,7 +150,7 @@ hclip_text_* / open_folder / open_url (ui-edit).
 - [Drawing commands](#drawing-commands): `cmd_layer`, `draw_color`, `draw_color_get`, `draw_rect`, `draw_rrect`, `draw_frame`, `cmd_rrect`, `cmd_panel_fx`, `draw_text`, `cmd_text`, `emit_text`, `draw_icon`, `draw_circle`, `draw_line`, `draw_image`, `draw_clip`, `draw_unclip`, `icon_hook`, `cmd_custom`, `cmd_shadow`
 - [Scripts and the widget dump](#scripts-and-the-widget-dump): `dump`
 - [Theme](#theme): `theme_set`, `theme_dark`, `accent_set`, `color`, `ts_font`, `ts_line`, `ts_base`
-- [Cursors, drops, clipboard images, dirty regions](#cursors-drops-clipboard-images-dirty-regions): `cursor_new`, `cursor_custom`, `cursor_current`, `cursor_render`, `drop_count`, `drop_path`, `drop_list`, `drop_pos`, `drop_window`, `clip_has`, `clip_set_image`, `clip_get_image`, `dirty_force_full`, `canvas_damage`
+- [Cursors, drops, clipboard images, dirty regions](#cursors-drops-clipboard-images-dirty-regions): `cursor_new`, `cursor_custom`, `cursor_current`, `cursor_render`, `drop_count`, `drop_path`, `open_take`, `drop_list`, `drop_pos`, `drop_window`, `clip_has`, `clip_set_image`, `clip_get_image`, `dirty_force_full`, `canvas_damage`
 
 ### App, AppDesc, Ui, run
 
@@ -2041,7 +2041,12 @@ Source: [`lib/ui/drop.rs`](../lib/ui/drop.rs)
 
 ```text
 drop -- (K1) dropped files for apps, the clipboard format probe, the headless image
-clipboard                                                           [src/ui/ui_drop.s]
+clipboard; the command lines of later starts (AF_SINGLE_INSTANCE)    [src/ui/ui_drop.s]
+
+  open_take() -> Vec<Request>     (UIC_OPEN, arg = their count) the working folder and
+                                  arguments of every later start of the app since the last
+                                  call; Request::paths() gives the files, which the app may
+                                  read and write (fs.user); the main window comes forward
 
   drop_count() -> n               files of the last drop (UIC_DROP, arg = window id)
   drop_path(i) -> Option<&str>    path i; valid until the next drop arrives
@@ -2065,6 +2070,9 @@ Internal:
   ui_drop_count: files of the last drop
 - **`fn drop_path(&self, i: u32) -> Option<&str>`**
   ui_drop_path(i): path i of the last drop (None when out of range)
+- **`fn open_take(&mut self) -> Vec<plat::instance::Request>`**
+  AF_SINGLE_INSTANCE: the command lines of later starts that arrived (UIC_OPEN), oldest
+  first; each call takes them
 - **`fn drop_list(&self) -> &[String]`**
   ui_drop_list: every path of the last drop
 - **`fn drop_pos(&self) -> (i32, i32)`**
@@ -2657,6 +2665,7 @@ UIC_DROP: u32 = 0x7FFF_0007  // arg = window id: files dropped (drop_*)
 UIC_JOB: u32 = 0x7FFF_0008  // arg = job id finished
 UIC_WAKE: u32 = 0x7FFF_0009  // plat::wake() from another thread
 UIC_EXIT: u32 = 0x7FFF_000A  // the window loop ends (only after a real window ran)
+UIC_OPEN: u32 = 0x7FFF_000B  // arg = requests: later starts of the app (AF_SINGLE_INSTANCE, open_requests)
 ```
 
 *app flags (AppDesc)*
@@ -2666,6 +2675,7 @@ AF_CUSTOM_TITLEBAR: u32 = 1
 AF_RESIZABLE: u32 = 2
 AF_DARK: u32 = 4  // force dark theme
 AF_LIGHT: u32 = 8  // force light theme
+AF_SINGLE_INSTANCE: u32 = 16  // one window per user: later starts hand their command line over (UIC_OPEN)
 ```
 
 *theme tokens (color)*
@@ -10626,6 +10636,8 @@ plat -- the platform layer: one module per OS with the same functions  [src/plat
   vfs:     "scheme://path" names in every file function: app:// (the bundled assets),
            config:// data:// cache:// (the app's folders), mem://, mounted providers
            (MemFs, DirFs, Overlay, Sub, Bundle); data_dir(), cache_dir()   (vfs.rs)
+  instance: claim(app) -> Primary / Forwarded / Alone, take() -> requests of later starts
+           (the app's single instance; pipe / abstract socket per user)  (instance.rs)
   threads: thread_spawn(stack, f) -> Thread (join), thread_yield(), Sem (post / wait),
            wake() (any thread: E_WAKE on the UI thread), wait_events(deadline, on_event)
            (headless), cpu_count(), mem_total()
@@ -11645,6 +11657,59 @@ APP_CACHE: u32 = 2
   a JFA1 bundle of (name, data) pairs: LZ4 where that saves a tenth (tests, tools); None for
   a name route() would refuse, a name twice, or a bundle beyond 4 GiB
 
+### `plat/instance.rs`
+
+Source: [`lib/plat/instance.rs`](../lib/plat/instance.rs)
+
+```text
+instance -- one running instance per app and user (ui: AppDesc AF_SINGLE_INSTANCE): a later
+start hands its working folder and arguments to the running instance and ends
+
+  claim(app) -> Claim        Primary: this process is the app's instance; the requests of
+                             later starts arrive on a thread of their own (take(); each one
+                             calls wake()); Forwarded: the running instance has the request,
+                             end this process; Alone: no instance channel (browser, Android,
+                             an error): carry on alone
+  take() -> Vec<Request>     the requests that arrived, oldest first
+  send(app, cwd, args) -> bool    hand a request to the running instance (claim uses it)
+  Request { cwd, args }; Request::paths()   the arguments that are no options, as absolute
+                             paths (names with a scheme and URLs as they are)
+
+Channel (control_ipc_win.rs / control_ipc_linux.rs): Windows the pipe
+\\.\pipe\jfgui-instance-<user SID>-<app> (current user, local clients, one pipe instance:
+the first process that creates it is the instance; the starting process lets it take the
+foreground); Linux the abstract socket jfgui-instance-<uid>-<app>.  Both ends make sure the
+other runs as the same user.  Message: "JFI1", u32 length of the rest, u32 count, count x
+(u32 length, UTF-8): the working folder, then the arguments (without the program); answer
+"OK".  At most 1 MiB, 3 s per exchange.
+```
+
+- **`enum Claim`**
+  what claim found
+  - `Primary` -- this process is the app's instance
+  - `Forwarded` -- the running instance got this start's request: end the process
+  - `Alone` -- no instance channel here: carry on alone
+
+- **`struct Request`**
+  the command line of a later start
+  - `cwd: String` -- the working folder of the starting process
+  - `args: Vec<String>` -- its arguments, without the program
+
+**`impl Request`**
+
+- **`fn paths(&self) -> Vec<String>`**
+  the arguments that are no options ("-..."): relative paths against cwd; names with a
+  scheme ("config://..", "https://..") as they are
+
+- **`fn take() -> Vec<Request>`**
+  the requests that arrived since the last call, oldest first
+
+- **`fn claim(app: &str) -> Claim`**
+  become the app's single instance, or hand this start's arguments to the running one
+
+- **`fn send(app: &str, cwd: &str, args: &[String]) -> bool`**
+  hand (cwd, args) to the running instance of app -> it confirmed the request
+
 ### `plat/guarded.rs`
 
 Source: [`lib/plat/guarded.rs`](../lib/plat/guarded.rs)
@@ -12304,6 +12369,10 @@ apps" entry, starting a command line             (r12-inst)  [apps/installer/src
   reg_create(subkey) -> Some(RegKey)   HKCU\subkey opened for writing (created when missing);
                                   RegKey::set_sz / set_dword, closed when dropped
   reg_delete(subkey) -> bool      RegDeleteKeyW(HKCU, subkey)
+  reg_delete_tree(subkey) -> bool RegDeleteTreeW: the key and everything below it
+  reg_delete_value(subkey, name) -> bool   RegDeleteKeyValueW (name "" = the default value)
+  assoc_changed()                 SHChangeNotify(SHCNE_ASSOCCHANGED): Explorer re-reads the
+                                  file types and URL schemes
   run_cmdline(cmdline, dir, hidden) -> bool    CreateProcessW (dir None = the current one,
                                   hidden = CREATE_NO_WINDOW)  [sh_run]
 
@@ -12343,6 +12412,15 @@ PATH_CAP: usize = 520
 
 - **`fn reg_delete(subkey: &str) -> bool`**
   RegDeleteKeyW(HKCU, subkey)  [sh_reg_delete, real mode]
+
+- **`fn reg_delete_tree(subkey: &str) -> bool`**
+  HKCU\\subkey with all its keys and values  (RegDeleteTreeW, then RegDeleteKeyW)
+
+- **`fn reg_delete_value(subkey: &str, name: &str) -> bool`**
+  one value of HKCU\\subkey ("" = its default value)  (RegDeleteKeyValueW)
+
+- **`fn assoc_changed()`**
+  tell the shell that file types or URL schemes changed (SHCNE_ASSOCCHANGED, SHCNF_IDLIST)
 
 - **`fn run_cmdline(cmdline: &str, dir: Option<&str>, hidden: bool) -> bool`**
   start a command line (UTF-8, PATH_CAP wide chars) in dir (None = the current folder);

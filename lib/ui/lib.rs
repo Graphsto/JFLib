@@ -300,6 +300,8 @@ pub struct Ui {
     pub(crate) need_render: bool,
     pub(crate) quit: bool,
     pub(crate) log_events: bool,
+    /// AF_SINGLE_INSTANCE: the requests open_take has not taken yet
+    pub(crate) open_reqs: Vec<plat::instance::Request>,
     pub(crate) autoclose_ms: u32,
     pub(crate) accent_raw: u32,
     pub(crate) settle_warned: bool,

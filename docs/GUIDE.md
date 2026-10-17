@@ -578,6 +578,24 @@ ui.dialog_end(); // always
   Flags `WF_TOOL`, `WF_DIALOG` (+ `WF_MODAL`; `dialog_buttons` then make the footer),
   `WF_RESIZABLE`, `WF_NOCLOSE`, `WF_AUTOHEIGHT`, ...; the library writes the user's placement
   back into the `WinRect`. `window_place`, `window_state`, `window_activate`, `window_destroy`.
+* **One instance**: with `AF_SINGLE_INSTANCE` in the `AppDesc`, a later start of the app hands its
+  working folder and command line to the running window and ends (`plat::instance`: a pipe /
+  an abstract socket per user and app; only for real windows, not for `--shot` / `--script`).
+  The window comes forward, the files are the user's ([PERMISSIONS.md](PERMISSIONS.md),
+  `fs.user`), and `App::command(UIC_OPEN, count)` arrives:
+
+  ```rust
+  UIC_OPEN => {
+      for r in ui.open_take() {          // plat::instance::Request { cwd, args }
+          for path in r.paths() {        // the arguments that are no options, absolute
+              self.open(ui, &path);
+          }
+      }
+  }
+  ```
+
+  The first start reads its own `plat::args()` as before. File types and URL schemes that open
+  the app come from `PACKAGE` ([PACKAGING.md](PACKAGING.md)).
 * **Title bar**: `AF_CUSTOM_TITLEBAR` in the `AppDesc`, then as the first row of the main box
   (caption buttons, dragging, snap layouts on Windows, resize grips on Linux):
 

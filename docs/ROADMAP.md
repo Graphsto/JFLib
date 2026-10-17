@@ -84,10 +84,15 @@ Vorhanden: [`plat/vfs.rs`](../lib/plat/vfs.rs) ([VFS.md](VFS.md)) seit 2026-10-1
 
 ## 3. Desktop-Integration
 
-- **P1** · *teilweise* · Nur eine Instanz; die Argumente gehen an die laufende Instanz
-  (`plat/control_ipc*.rs` als Basis).
-- **P1** · *fehlt* · Dateizuordnungen (ProgID, `.desktop` mit `MimeType`), eigene URL-Schemes,
-  Deep Links.
+- **P1** · *erledigt* · Nur eine Instanz (`AF_SINGLE_INSTANCE`, `plat::instance`): Spätere
+  Starts geben Ordner und Kommandozeile an die laufende Instanz (Windows: Named Pipe pro
+  Nutzer-SID; Linux: abstrakter Socket pro UID; beide Seiten prüfen den Nutzer). Das Fenster
+  kommt nach vorn, die App bekommt `UIC_OPEN`. PaintCraft öffnet so Dateien als Tabs.
+- **P1** · *teilweise* · Dateizuordnungen und URL-Schemes: `PACKAGE` `filetypes=` / `schemes=`.
+  Das Windows-Setup registriert ProgIDs, „Öffnen mit“ und Schemes unter HKCU (das Deinstallieren
+  entfernt sie wieder), das .deb trägt `MimeType=` und `%U` / `%F` ein, eigene Typen bekommen
+  ein shared-mime-info-Paket. Es fehlen noch: Registrierung ohne Setup (Entwickler-Builds),
+  macOS, MSIX / Flatpak.
 - **P1** · *fehlt* · OS-Benachrichtigungen (Windows-Toast, `org.freedesktop.Notifications` /
   Portal). Heute nur Toasts im Fenster ([`ui/notify.rs`](../lib/ui/notify.rs)).
 - **P1** · *fehlt* · Symbol im Infobereich (`Shell_NotifyIcon`, StatusNotifierItem über D-Bus).

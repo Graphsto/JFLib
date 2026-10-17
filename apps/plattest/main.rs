@@ -38,6 +38,11 @@
 //   plattest --test vfs                    (t_vfs.rs) one file namespace: routes, mem://, a
 //                                          DirFs mount, JFA1 bundles, Overlay, Sub, ZipFs,
 //                                          config:// (not in "all")
+//   plattest --test instance               (t_instance.rs) one instance per app and user: claim,
+//                                          send, a second process (--test instance-client)
+//                                          that is forwarded (not in "all")
+//   plattest --test reg                    (t_reg.rs, Windows, by hand) plat::inst's registry
+//                                          calls on a test key of HKCU, removed again
 //   plattest --test all                    threads, files, ini, cpu
 //   --repeat N                             run the selected tests N times (only failures are
 //                                          printed then) -- a stress loop for races
@@ -72,11 +77,13 @@ mod t_window;
 // plat-shared: printing, the crash guard, the plugin loader, the portal
 mod t_guard;
 mod t_icc;
+mod t_instance;
 mod t_lib;
 mod t_policy;
 mod t_vfs;
 mod t_portal;
 mod t_print;
+mod t_reg;
 
 use plat::{
     CPU_AVX2, CPU_BMI2, CPU_FMA, CPU_POPCNT, CPU_SSE41, Cancelled, E_WAKE, FO_READ, FO_RW, FO_WRITE, File, Job,
@@ -204,6 +211,9 @@ fn plattest() -> i32 {
         Some("iccx11") => t_icc::t_iccx11,             // plat-shared
         Some("policy") => t_policy::t_policy,          // permissions (not in "all": it stays installed)
         Some("vfs") => t_vfs::t_vfs,                   // vfs: mounts, bundles, overlays, zip, app folders
+        Some("instance") => t_instance::t_instance,    // single instance: claim, forwarding
+        Some("instance-client") => t_instance::t_instance_client, // its second process
+        Some("reg") => t_reg::t_reg,                   // registry of the setup (by hand: real HKCU)
         _ => {
             plat::write_stderr(b"usage: plattest --test threads|files|ini|cpu|pen|cursor|all [--repeat N]\n");
             return 2;

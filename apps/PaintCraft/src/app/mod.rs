@@ -14,7 +14,7 @@ use ui::*;
 
 const DESC: AppDesc = AppDesc {
     title: "Unbenannt - PaintCraft",
-    flags: AF_RESIZABLE | AF_CUSTOM_TITLEBAR,
+    flags: AF_RESIZABLE | AF_CUSTOM_TITLEBAR | AF_SINGLE_INSTANCE, // later starts open their files here
     w: 1280,
     h: 800,
     min_w: 1000,

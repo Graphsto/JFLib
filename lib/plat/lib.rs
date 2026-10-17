@@ -14,6 +14,8 @@
 //   vfs:     "scheme://path" names in every file function: app:// (the bundled assets),
 //            config:// data:// cache:// (the app's folders), mem://, mounted providers
 //            (MemFs, DirFs, Overlay, Sub, Bundle); data_dir(), cache_dir()   (vfs.rs)
+//   instance: claim(app) -> Primary / Forwarded / Alone, take() -> requests of later starts
+//            (the app's single instance; pipe / abstract socket per user)  (instance.rs)
 //   threads: thread_spawn(stack, f) -> Thread (join), thread_yield(), Sem (post / wait),
 //            wake() (any thread: E_WAKE on the UI thread), wait_events(deadline, on_event)
 //            (headless), cpu_count(), mem_total()
@@ -79,6 +81,8 @@ pub use capabilities::*;
 pub mod policy;
 /// One file namespace: app://, config://, data://, cache://, mem:// and mounted providers.
 pub mod vfs;
+/// One running instance per app and user; later starts hand over their arguments.
+pub mod instance;
 mod guarded;
 pub use guarded::*;
 mod control_stream;

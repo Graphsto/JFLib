@@ -105,7 +105,8 @@ With `fs.user` the UI runtime grants read and write access to:
 - the path the file dialog returns (system dialog or the library's own),
 - every path of a drop (`UIC_DROP`),
 - the command-line arguments that are not options (`--name=value` counts with its value),
-  for example the file of "Open with".
+  for example the file of "Open with",
+- the files of later starts that a single instance receives (`AF_SINGLE_INSTANCE`, `UIC_OPEN`).
 
 A granted folder includes everything below it. Without `fs.user` the user can still choose
 files, but the app cannot open them.

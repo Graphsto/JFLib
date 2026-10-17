@@ -170,6 +170,8 @@ fn pl_parse(st: &mut Inst) -> Result<(), ()> {
     st.ver = kv_get(&man, "version", 32).unwrap_or_default();
     st.pub_ = kv_get(&man, "publisher", 96).unwrap_or_default();
     st.defsty = kv_get(&man, "default", 48).unwrap_or_default();
+    st.types = kv_get(&man, "filetypes", 4096).unwrap_or_default();
+    st.schemes = kv_get(&man, "schemes", 512).unwrap_or_default();
     // descriptions: desc_<style id>
     for k in 0..st.sty.len() {
         let key = str_cap(&(String::from("desc_") + &st.ents[st.sty[k].ent].name), 64);

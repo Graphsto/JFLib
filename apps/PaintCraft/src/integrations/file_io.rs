@@ -247,7 +247,22 @@ fn dir_path(f: &mut Fio, name: &str) {
 // fio_start() -- command line files (--open FILE, plain arguments), else one new image
 fn fio_start(p: &mut Pn, ui: &mut Ui) {
     let a = plat::args();
-    let mut i = 1;
+    fio_open_args(p, ui, "", a.get(1..).unwrap_or(&[]));
+    if doc_count(&p.doc) == 0 {
+        new_default(p);
+    }
+}
+
+// fio_open_args(cwd, args) -- the files of a command line (--open FILE, plain arguments;
+// options with a value skip it); relative names against cwd ("" = this process's folder)
+fn fio_open_args(p: &mut Pn, ui: &mut Ui, cwd: &str, a: &[String]) {
+    let full = |f: &str| {
+        let b = f.as_bytes();
+        let absolute = cwd.is_empty() || f.contains("://") || b.first().is_some_and(|&c| c == b'/' || c == b'\\')
+            || (b.len() >= 2 && b[1] == b':');
+        if absolute { String::from(f) } else { format!("{}/{}", cwd.trim_end_matches(['/', '\\']), f) }
+    };
+    let mut i = 0;
     while i < a.len() {
         let s = a[i].clone();
         i += 1;
@@ -255,16 +270,13 @@ fn fio_start(p: &mut Pn, ui: &mut Ui) {
             if s == "--open" {
                 let Some(f) = a.get(i).cloned() else { break };
                 i += 1;
-                fio_open_path(p, ui, &f);
+                fio_open_path(p, ui, &full(&f));
             } else if VALUE_OPTS.contains(&s.as_str()) {
                 i += 1; // options with a value: skip the value
             }
             continue;
         }
-        fio_open_path(p, ui, &s);
-    }
-    if doc_count(&p.doc) == 0 {
-        new_default(p);
+        fio_open_path(p, ui, &full(&s));
     }
 }
 
@@ -1376,6 +1388,13 @@ pub(crate) fn fio_cmd(p: &mut Pn, ui: &mut Ui, id: u32, arg: u32) -> bool {
     }
     match id {
         UIC_CLOSE => return exit_request(p, ui),
+        UIC_OPEN => {
+            // AF_SINGLE_INSTANCE: a later start of PaintCraft hands its files over
+            for r in ui.open_take() {
+                fio_open_args(p, ui, &r.cwd, &r.args);
+            }
+            return true;
+        }
         UIC_WAKE => {
             poll_open(p, ui);
             #[cfg(target_arch = "wasm32")]

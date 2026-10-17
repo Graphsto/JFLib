@@ -9,10 +9,13 @@
 //                                       write the uninstall key of the app
 //   sh_reg_delete(app) -> bool          remove it again
 //   sh_run(cmdline, dir, hidden) -> bool
+//   sh_assoc_set(entries) / sh_assoc_remove(list)   the file types and URL schemes (assoc.rs):
+//                                       registry values under HKCU, then SHChangeNotify
 //
 // Test mode: with the environment variable ASMINST_SHELL_DIR set, the desktop and the start
-// menu are <dir>\Desktop and <dir>\Programs and registry values go to <dir>\registry.txt --
-// a test never touches the user's shell or registry.
+// menu are <dir>\Desktop and <dir>\Programs and registry values go to <dir>\registry.txt
+// (the file types and schemes to <dir>\assoc.txt, "subkey|name=value" lines) -- a test never
+// touches the user's shell or registry.
 
 use alloc::format;
 use alloc::string::String;
@@ -99,6 +102,47 @@ pub(crate) fn sh_reg_delete(app: &str) -> bool {
         return plat::delete(&str_cap(&(t + "\\registry.txt"), PATH_CAP));
     }
     plat::inst::reg_delete(&sh_regpath(app))
+}
+
+/// write the registry values of the file types and URL schemes (test mode: assoc.txt)
+pub(crate) fn sh_assoc_set(entries: &[(String, String, String)]) {
+    if entries.is_empty() {
+        return;
+    }
+    if let Some(t) = sh_testdir() {
+        let mut text = String::new();
+        for (k, n, v) in entries {
+            text.push_str(&format!("{k}|{n}={v}\n"));
+        }
+        plat::write_file(&str_cap(&(t + "\\assoc.txt"), PATH_CAP), text.as_bytes());
+        return;
+    }
+    for (k, n, v) in entries {
+        if let Some(key) = plat::inst::reg_create(k) {
+            key.set_sz(n, v);
+        }
+    }
+    plat::inst::assoc_changed();
+}
+
+/// remove what sh_assoc_set added: "T:<subkey>" trees, "V:<subkey>|<name>" values (';'
+/// separated; test mode: delete assoc.txt)
+pub(crate) fn sh_assoc_remove(list: &str) {
+    if list.is_empty() {
+        return;
+    }
+    if let Some(t) = sh_testdir() {
+        plat::delete(&str_cap(&(t + "\\assoc.txt"), PATH_CAP));
+        return;
+    }
+    for item in list.split(';') {
+        if let Some(k) = item.strip_prefix("T:") {
+            plat::inst::reg_delete_tree(k);
+        } else if let Some((k, n)) = item.strip_prefix("V:").and_then(|v| v.split_once('|')) {
+            plat::inst::reg_delete_value(k, n);
+        }
+    }
+    plat::inst::assoc_changed();
 }
 
 /// start a process (cmdline and dir UTF-8; dir None = the current one), hidden =

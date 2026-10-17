@@ -9,13 +9,14 @@
 //                                       delete uninstall.exe and the folder after the exit
 //
 // install.ini (key=value): app, display, style, desktop, start (shortcut paths or empty),
-// reg (1 / 0), files (further files relative to the folder, ';'-separated, '\')
+// reg (1 / 0), files (further files relative to the folder, ';'-separated, '\'), assoc (what
+// the file types and URL schemes added, assoc.rs)
 
 use alloc::format;
 use alloc::string::String;
 
 use crate::payload::{PK_FILE, STY_MAX, kv_get, parent_dir, path_cap, pl_inflate};
-use crate::shell::{Reg, sh_folder, sh_link, sh_reg_delete, sh_run};
+use crate::shell::{Reg, sh_assoc_remove, sh_assoc_set, sh_folder, sh_link, sh_reg_delete, sh_run};
 use crate::{Inst, PATH_CAP, str_cap};
 
 const IN_FILES_CAP: usize = 4096; // in_files: "a;b;c" of the uninstaller
@@ -118,6 +119,11 @@ pub(crate) fn inst_run(st: &mut Inst) -> Result<(), ()> {
     if st.opt_reg != 0 {
         in_regentry(st);
     }
+    // file types and URL schemes (PACKAGE filetypes= / schemes=)
+    let types = crate::assoc::parse_types(&st.types);
+    let schemes = crate::assoc::parse_schemes(&st.schemes);
+    let plan = crate::assoc::plan(&st.app, &st.disp, &st.exepath, &types, &schemes);
+    sh_assoc_set(&plan.set);
     in_ini(&mut initxt, "app", &st.app);
     in_ini(&mut initxt, "display", &st.disp);
     let style = &st.ents[st.sty[sel_index(st)].ent].name;
@@ -126,6 +132,7 @@ pub(crate) fn inst_run(st: &mut Inst) -> Result<(), ()> {
     in_ini(&mut initxt, "start", &st.lnk_start);
     in_ini(&mut initxt, "reg", if st.opt_reg != 0 { "1" } else { "0" });
     in_ini(&mut initxt, "files", &files);
+    in_ini(&mut initxt, "assoc", &plan.remove);
     plat::write_file(&in_path(st, "install.ini"), initxt.as_bytes());
     Ok(())
 }
@@ -182,6 +189,7 @@ fn un_load_ini(st: &mut Inst) -> Result<(), ()> {
     st.lnk_desk = kv_get(&ini, "desktop", PATH_CAP).unwrap_or_default();
     st.lnk_start = kv_get(&ini, "start", PATH_CAP).unwrap_or_default();
     st.files = kv_get(&ini, "files", IN_FILES_CAP).unwrap_or_default();
+    st.assoc = kv_get(&ini, "assoc", INITXT_CAP).unwrap_or_default();
     let reg = kv_get(&ini, "reg", 8).unwrap_or_default();
     st.opt_reg = reg.as_bytes().first().is_some_and(|&c| c == b'1') as i32;
     Ok(())
@@ -216,6 +224,7 @@ pub(crate) fn un_run(st: &mut Inst) {
     if st.opt_reg != 0 {
         sh_reg_delete(&st.app);
     }
+    sh_assoc_remove(&st.assoc);
     plat::delete(&in_path(st, "install.ini"));
     // uninstall.exe and the folder: cmd removes them once this process has ended
     let cmd = path_cap(&format!(

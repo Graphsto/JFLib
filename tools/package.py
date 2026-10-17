@@ -23,7 +23,9 @@ previews and the .deb are made the same way for both.
 
 Inputs: apps/<App>/PACKAGE (key=value: display, version, publisher, summary, description,
 generic, categories, section, deb_name, default_win, default_linux, styles; optional
-cross_bins= and unit_<name>=, below), apps/<App>/res/app.ico and
+cross_bins= and unit_<name>=, below; filetypes= / schemes=: the file types and URL schemes the
+app opens -- the setup registers them under HKCU\\Software\\Classes, the .deb in its .desktop
+file and, for "own" types, a shared-mime-info package), apps/<App>/res/app.ico and
 app_{48,128,256}.png (tools/mkicon.py), styles/<style>/INFO (shown name, description;
 --impl asm: legacy/ASMLIB/styles/<style>/INFO). The .deb uses local dpkg-deb on Linux, or
 WSL on Windows (jfgui_WSL_DISTRO, default Ubuntu-24.04). Payload layout:
@@ -43,6 +45,7 @@ ships the systemd unit /lib/systemd/system/<name>.service in the .deb (ExecStart
 """
 import argparse
 import os
+import re
 import shutil
 import struct
 import subprocess
@@ -79,6 +82,43 @@ def kv_file(path):
         if line and not line.startswith("#") and "=" in line:
             k, v = line.split("=", 1)
             out[k.strip()] = v.strip()
+    return out
+
+
+def filetypes(meta):
+    """PACKAGE filetypes= -> [(exts, mime, description, own)]: "ext[,ext..]|mime|description[|own]"
+    entries separated by ';' (apps/installer/assoc.rs reads the same text from the manifest)"""
+    out = []
+    for entry in (e.strip() for e in meta.get("filetypes", "").split(";")):
+        if not entry:
+            continue
+        f = [x.strip() for x in entry.split("|")]
+        exts = [e.strip().lstrip(".").lower() for e in f[0].split(",")] if f else []
+        ok = (3 <= len(f) <= 4 and (len(f) == 3 or f[3] == "own") and exts
+              and all(re.fullmatch(r"[a-z0-9_+.-]{1,32}", e) for e in exts)
+              and re.fullmatch(r"[a-z0-9.+-]+/[a-z0-9.+-]+", f[1]) and f[2] and not re.search(r'["<>&]', f[2]))
+        if not ok:
+            raise SystemExit(f"PACKAGE filetypes: bad entry {entry!r} (ext[,ext..]|mime/type|description[|own])")
+        out.append((exts, f[1], f[2], len(f) == 4))
+    return out
+
+
+def mime_package(types):
+    """the shared-mime-info XML of the app's own file types (filetypes() entries)"""
+    return ('<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">\n'
+            + "".join(f'  <mime-type type="{m}">\n    <comment>{desc}</comment>\n'
+                      + "".join(f'    <glob pattern="*.{e}"/>\n' for e in exts) + "  </mime-type>\n"
+                      for exts, m, desc, _ in types)
+            + "</mime-info>\n")
+
+
+def schemes(meta):
+    """PACKAGE schemes= -> the URL schemes the app opens (blanks, ',' or ';' between them)"""
+    out = [s.lower() for s in re.split(r"[;, ]+", meta.get("schemes", "")) if s]
+    for s in out:
+        if not re.fullmatch(r"[a-z][a-z0-9+.-]{0,31}", s):
+            raise SystemExit(f"PACKAGE schemes: bad scheme {s!r}")
     return out
 
 
@@ -190,6 +230,10 @@ def make_setup(app, meta, styles, dist, work, impl="asm", rsout=None, profile="s
     for s in styles:
         label, desc = style_info(s, impl)
         man.append(f"desc_{s}={desc}")
+    if filetypes(meta):                                  # checked here, registered by the setup
+        man.append(f"filetypes={meta['filetypes']}")
+    if schemes(meta):
+        man.append(f"schemes={' '.join(schemes(meta))}")
     mtext = ("\n".join(man) + "\n").encode("utf-8")
     entries.append((PK_MANIFEST, PF_ZLIB, "manifest", "", zlib.compress(mtext, 9), len(mtext)))
     for s in styles:
@@ -308,10 +352,19 @@ def make_deb(app, meta, styles, dist, work, impl="rs", rsout=None):
         size += source.stat().st_size
     apps = tree / "usr" / "share" / "applications"
     apps.mkdir(parents=True)
+    types, urls = filetypes(meta), schemes(meta)
+    mimes = list(dict.fromkeys([m for _, m, _, _ in types] + [f"x-scheme-handler/{s}" for s in urls]))
     (apps / f"{pkg}.desktop").write_bytes(lf(
         "[Desktop Entry]\nType=Application\n"
         f"Name={display}\nGenericName={meta.get('generic', display)}\nComment={meta.get('summary', '')}\n"
-        f"Exec={pkg} %F\nIcon={pkg}\nTerminal=false\nCategories={meta.get('categories', 'Utility;')}\n"))
+        f"Exec={pkg} {'%U' if urls else '%F'}\nIcon={pkg}\nTerminal=false\nCategories={meta.get('categories', 'Utility;')}\n"
+        + (f"MimeType={';'.join(mimes)};\n" if mimes else "")))
+    own = [t for t in types if t[3]]
+    if own:
+        # the app's own types: a shared-mime-info package (dpkg's trigger updates the database)
+        d = tree / "usr" / "share" / "mime" / "packages"
+        d.mkdir(parents=True)
+        (d / f"{pkg}.xml").write_bytes(lf(mime_package(own)))
     for sz in (48, 128, 256):
         d = tree / "usr" / "share" / "icons" / "hicolor" / f"{sz}x{sz}" / "apps"
         d.mkdir(parents=True)
@@ -348,6 +401,8 @@ def make_deb(app, meta, styles, dist, work, impl="rs", rsout=None):
         + "".join(f"  ln -sf /usr/lib/{pkg}/{m} /usr/bin/{m}\n" for m in bins) +
         ("  if [ -d /run/systemd/system ]; then systemctl daemon-reload || true; fi\n" if units else "") +
         "  if command -v update-desktop-database >/dev/null 2>&1; then update-desktop-database -q || true; fi\n"
+        + ("  if command -v update-mime-database >/dev/null 2>&1; then update-mime-database /usr/share/mime || true; fi\n"
+           if own else "") +
         "  if command -v gtk-update-icon-cache >/dev/null 2>&1; then "
         "gtk-update-icon-cache -q -t /usr/share/icons/hicolor || true; fi\n"
         "fi\ndb_stop\nexit 0\n"))

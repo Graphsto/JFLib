@@ -10,3 +10,6 @@ mod native;
 
 #[cfg(any(windows, target_os = "linux"))]
 pub use native::{Listener, Stream};
+// the app's single instance (instance.rs)
+#[cfg(any(windows, target_os = "linux"))]
+pub(crate) use native::{InstConn, inst_connect, inst_listen};

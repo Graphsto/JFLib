@@ -10,6 +10,10 @@
 //   reg_create(subkey) -> Some(RegKey)   HKCU\subkey opened for writing (created when missing);
 //                                   RegKey::set_sz / set_dword, closed when dropped
 //   reg_delete(subkey) -> bool      RegDeleteKeyW(HKCU, subkey)
+//   reg_delete_tree(subkey) -> bool RegDeleteTreeW: the key and everything below it
+//   reg_delete_value(subkey, name) -> bool   RegDeleteKeyValueW (name "" = the default value)
+//   assoc_changed()                 SHChangeNotify(SHCNE_ASSOCCHANGED): Explorer re-reads the
+//                                   file types and URL schemes
 //   run_cmdline(cmdline, dir, hidden) -> bool    CreateProcessW (dir None = the current one,
 //                                   hidden = CREATE_NO_WINDOW)  [sh_run]
 //
@@ -79,8 +83,11 @@ const P_REGCREATE: usize = 4;
 const P_REGSET: usize = 5;
 const P_REGCLOSE: usize = 6;
 const P_REGDELETE: usize = 7;
+const P_REGTREE: usize = 8;
+const P_REGDELVAL: usize = 9;
+const P_CHANGENOTIFY: usize = 10;
 static LOADED: AtomicU32 = AtomicU32::new(0);
-static PROCS: [AtomicUsize; 8] = [const { AtomicUsize::new(0) }; 8];
+static PROCS: [AtomicUsize; 11] = [const { AtomicUsize::new(0) }; 11];
 
 /// resolve the optional APIs once and initialise COM  [sh_load]
 fn inst_load() {
@@ -96,6 +103,9 @@ fn inst_load() {
     set(P_REGSET, b"advapi32.dll\0", b"RegSetValueExW\0");
     set(P_REGCLOSE, b"advapi32.dll\0", b"RegCloseKey\0");
     set(P_REGDELETE, b"advapi32.dll\0", b"RegDeleteKeyW\0");
+    set(P_REGTREE, b"advapi32.dll\0", b"RegDeleteTreeW\0");
+    set(P_REGDELVAL, b"advapi32.dll\0", b"RegDeleteKeyValueW\0");
+    set(P_CHANGENOTIFY, b"shell32.dll\0", b"SHChangeNotify\0");
     let p = PROCS[P_COINIT].load(Ordering::SeqCst);
     if p != 0 {
         // SAFETY: CoInitializeEx(LPVOID reserved, DWORD) -> HRESULT; S_FALSE / RPC_E_CHANGED_MODE
@@ -290,6 +300,41 @@ pub fn reg_delete(subkey: &str) -> bool {
     // SAFETY: RegDeleteKeyW(HKEY, LPCWSTR) -> LSTATUS.
     let f: unsafe extern "system" fn(isize, *const u16) -> i32 = unsafe { core::mem::transmute(p) };
     unsafe { f(HKCU, w_key.as_ptr()) == 0 }
+}
+
+/// HKCU\subkey with all its keys and values  (RegDeleteTreeW, then RegDeleteKeyW)
+pub fn reg_delete_tree(subkey: &str) -> bool {
+    let p = proc_(P_REGTREE);
+    if p == 0 {
+        return false;
+    }
+    let w_key = wide_cap(subkey, PATH_CAP);
+    // SAFETY: RegDeleteTreeW(HKEY, LPCWSTR) -> LSTATUS: the key with everything below it.
+    let f: unsafe extern "system" fn(isize, *const u16) -> i32 = unsafe { core::mem::transmute(p) };
+    let ok = unsafe { f(HKCU, w_key.as_ptr()) } == 0;
+    ok | reg_delete(subkey) // older systems leave the emptied key itself
+}
+
+/// one value of HKCU\subkey ("" = its default value)  (RegDeleteKeyValueW)
+pub fn reg_delete_value(subkey: &str, name: &str) -> bool {
+    let p = proc_(P_REGDELVAL);
+    if p == 0 {
+        return false;
+    }
+    let (w_key, w_name) = (wide_cap(subkey, PATH_CAP), wide_cap(name, NAME_CAP));
+    // SAFETY: RegDeleteKeyValueW(HKEY, LPCWSTR, LPCWSTR) -> LSTATUS.
+    let f: unsafe extern "system" fn(isize, *const u16, *const u16) -> i32 = unsafe { core::mem::transmute(p) };
+    unsafe { f(HKCU, w_key.as_ptr(), w_name.as_ptr()) == 0 }
+}
+
+/// tell the shell that file types or URL schemes changed (SHCNE_ASSOCCHANGED, SHCNF_IDLIST)
+pub fn assoc_changed() {
+    let p = proc_(P_CHANGENOTIFY);
+    if p != 0 {
+        // SAFETY: SHChangeNotify(LONG, UINT, LPCVOID, LPCVOID) with no items.
+        let f: unsafe extern "system" fn(i32, u32, usize, usize) = unsafe { core::mem::transmute(p) };
+        unsafe { f(0x0800_0000, 0, 0, 0) };
+    }
 }
 
 /// start a command line (UTF-8, PATH_CAP wide chars) in dir (None = the current folder);

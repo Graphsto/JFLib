@@ -235,11 +235,21 @@ impl Drop for Module {
     }
 }
 
-fn security_descriptor() -> Result<*mut c_void, i32> {
-    type OpenToken = unsafe extern "system" fn(isize, u32, *mut isize) -> i32;
-    type TokenInfo = unsafe extern "system" fn(isize, u32, *mut u8, u32, *mut u32) -> i32;
-    type SidText = unsafe extern "system" fn(*const c_void, *mut *mut u16) -> i32;
-    type Descriptor = unsafe extern "system" fn(*const u16, u32, *mut *mut c_void, *mut u32) -> i32;
+type OpenToken = unsafe extern "system" fn(isize, u32, *mut isize) -> i32;
+type TokenInfo = unsafe extern "system" fn(isize, u32, *mut u8, u32, *mut u32) -> i32;
+type SidText = unsafe extern "system" fn(*const c_void, *mut *mut u16) -> i32;
+type Descriptor = unsafe extern "system" fn(*const u16, u32, *mut *mut c_void, *mut u32) -> i32;
+
+/// advapi32, loaded for the token and security calls
+struct Advapi {
+    _module: Module,
+    open: OpenToken,
+    info: TokenInfo,
+    sid_text: SidText,
+    descriptor: Descriptor,
+}
+
+fn advapi() -> Result<Advapi, i32> {
     // SAFETY: the library name is fixed and terminated; Win32 resolves the system library.
     let module = Module(unsafe { LoadLibraryExW(wide("advapi32.dll").as_ptr(), 0, 0x800) });
     if module.0 == 0 {
@@ -267,9 +277,33 @@ fn security_descriptor() -> Result<*mut c_void, i32> {
             core::mem::transmute(pointers[3]),
         )
     };
+    Ok(Advapi { _module: module, open, info, sid_text, descriptor })
+}
+
+fn security_descriptor() -> Result<*mut c_void, i32> {
+    // SAFETY: the pseudo handle of the own process needs no closing.
+    descriptor_for(&process_sid(unsafe { GetCurrentProcess() })?)
+}
+
+/// a descriptor that grants everything to the user with this SID and nothing to others
+fn descriptor_for(sid: &str) -> Result<*mut c_void, i32> {
+    let api = advapi()?;
+    let sddl = wide(&format!("D:P(A;;GA;;;{sid})"));
+    let mut security = core::ptr::null_mut();
+    // SAFETY: SDDL consists solely of fixed syntax and validated canonical SID text.
+    if unsafe { (api.descriptor)(sddl.as_ptr(), 1, &mut security, core::ptr::null_mut()) } == 0 {
+        return Err(last_error());
+    }
+    Ok(security)
+}
+
+/// the canonical SID text ("S-1-5-...") of the user a process runs as
+fn process_sid(process: isize) -> Result<String, i32> {
+    let api = advapi()?;
+    let (open, info, sid_text) = (api.open, api.info, api.sid_text);
     let mut token = 0;
-    // SAFETY: TOKEN_QUERY requests read-only access to this process's own token.
-    if unsafe { open(GetCurrentProcess(), 8, &mut token) } == 0 {
+    // SAFETY: TOKEN_QUERY requests read-only access to the process's token.
+    if unsafe { open(process, 8, &mut token) } == 0 {
         return Err(last_error());
     }
     let mut bytes = 0;
@@ -319,11 +353,184 @@ fn security_descriptor() -> Result<*mut c_void, i32> {
     {
         return Err(13);
     }
-    let sddl = wide(&format!("D:P(A;;GA;;;{sid_string})"));
-    let mut security = core::ptr::null_mut();
-    // SAFETY: SDDL consists solely of fixed syntax and validated canonical current-user SID text.
-    if unsafe { descriptor(sddl.as_ptr(), 1, &mut security, core::ptr::null_mut()) } == 0 {
-        return Err(last_error());
+    Ok(sid_string)
+}
+
+// ---------------------------------------------------------------- the app's single instance
+// (instance.rs): the pipe \\.\pipe\jfgui-instance-<user SID>-<app> with one pipe instance,
+// local clients only, a DACL for the current user; the process that creates it first is the
+// app's running instance.  A starting process checks that the pipe's server runs as the same
+// user and allows it to take the foreground.
+
+#[link(name = "kernel32")]
+unsafe extern "system" {
+    fn CreateFileW(name: *const u16, access: u32, share: u32, sa: usize, disp: u32, flags: u32, tmpl: isize) -> isize;
+    fn WaitNamedPipeW(name: *const u16, timeout: u32) -> i32;
+    fn SetNamedPipeHandleState(pipe: isize, mode: *const u32, max: *const u32, timeout: *const u32) -> i32;
+    fn GetNamedPipeServerProcessId(pipe: isize, pid: *mut u32) -> i32;
+    fn OpenProcess(access: u32, inherit: i32, pid: u32) -> isize;
+    fn FlushFileBuffers(file: isize) -> i32;
+}
+
+#[link(name = "user32", kind = "raw-dylib")]
+unsafe extern "system" {
+    fn AllowSetForegroundWindow(pid: u32) -> i32;
+}
+
+const PIPE_NOWAIT: u32 = 1;
+const PIPE_WAIT: u32 = 0;
+
+fn inst_name(app: &str) -> Result<Vec<u16>, i32> {
+    // SAFETY: the pseudo handle of the own process needs no closing.
+    let sid = process_sid(unsafe { GetCurrentProcess() })?;
+    Ok(wide(&format!("\\\\.\\pipe\\jfgui-instance-{sid}-{app}")))
+}
+
+/// the listening side of the instance pipe (blocking; one client at a time)
+pub(crate) struct InstServer {
+    pipe: isize,
+    descriptor: *mut c_void,
+}
+
+// SAFETY: the pipe handle and the descriptor are used by one thread at a time (moved into it).
+unsafe impl Send for InstServer {}
+
+/// one exchange over the instance pipe (nonblocking reads and writes)
+pub(crate) struct InstConn {
+    pipe: isize,
+    server: bool,
+}
+
+/// create the instance pipe -> None when another process of this user already has it
+pub(crate) fn inst_listen(app: &str) -> Result<Option<InstServer>, i32> {
+    let name = inst_name(app)?;
+    let descriptor = security_descriptor()?;
+    let security = SecurityAttributes { length: core::mem::size_of::<SecurityAttributes>() as u32, descriptor, inherit: 0 };
+    // SAFETY: name is zero-terminated; duplex, FILE_FLAG_FIRST_PIPE_INSTANCE, byte mode, waiting,
+    // remote clients rejected, one instance.
+    let pipe = unsafe { CreateNamedPipeW(name.as_ptr(), 3 | 0x80000, PIPE_WAIT | 8, 1, 4096, 4096, 0, &security) };
+    if pipe == -1 {
+        let error = last_error();
+        // SAFETY: the descriptor came from ConvertStringSecurityDescriptorToSecurityDescriptorW.
+        unsafe {
+            LocalFree(descriptor);
+        }
+        return if error == 5 || error == 231 { Ok(None) } else { Err(error) };
     }
-    Ok(security)
+    Ok(Some(InstServer { pipe, descriptor }))
+}
+
+impl InstServer {
+    /// wait for the next starting process (blocks)
+    pub(crate) fn accept(&self) -> Result<InstConn, i32> {
+        // SAFETY: the server owns this waiting pipe handle; no overlapped I/O.
+        if unsafe { ConnectNamedPipe(self.pipe, core::ptr::null_mut()) } == 0 {
+            let error = last_error();
+            if error == 232 {
+                // a client came and went before the call: free the pipe for the next one
+                // SAFETY: the server's own pipe handle.
+                unsafe { DisconnectNamedPipe(self.pipe) };
+                return Err(error);
+            }
+            if error != 535 {
+                return Err(error); // 535: the client connected before the call
+            }
+        }
+        // SAFETY: the mode value lives during the call.
+        unsafe { SetNamedPipeHandleState(self.pipe, &PIPE_NOWAIT, core::ptr::null(), core::ptr::null()) };
+        Ok(InstConn { pipe: self.pipe, server: true })
+    }
+}
+
+impl Drop for InstServer {
+    fn drop(&mut self) {
+        close(self.pipe);
+        // SAFETY: the server exclusively owns its descriptor.
+        unsafe {
+            LocalFree(self.descriptor);
+        }
+    }
+}
+
+/// connect to the running instance (it must run as the same user)
+pub(crate) fn inst_connect(app: &str) -> Result<InstConn, i32> {
+    let name = inst_name(app)?;
+    for _ in 0..3 {
+        // SAFETY: name is zero-terminated; GENERIC_READ | GENERIC_WRITE, OPEN_EXISTING.
+        let pipe = unsafe { CreateFileW(name.as_ptr(), 0xC000_0000, 0, 0, 3, 0, 0) };
+        if pipe == -1 {
+            let error = last_error();
+            if error != 231 {
+                return Err(error); // 2: no instance
+            }
+            // SAFETY: name is zero-terminated.
+            unsafe { WaitNamedPipeW(name.as_ptr(), 2000) };
+            continue;
+        }
+        let conn = InstConn { pipe, server: false };
+        let mut pid = 0u32;
+        // SAFETY: a connected pipe handle and an out-parameter.
+        if unsafe { GetNamedPipeServerProcessId(pipe, &mut pid) } == 0 {
+            return Err(last_error());
+        }
+        // SAFETY: PROCESS_QUERY_LIMITED_INFORMATION for the token of the server process.
+        let process = unsafe { OpenProcess(0x1000, 0, pid) };
+        if process == 0 {
+            return Err(last_error());
+        }
+        // SAFETY: the own pseudo handle.
+        let same = process_sid(process).ok() == process_sid(unsafe { GetCurrentProcess() }).ok();
+        close(process);
+        if !same {
+            return Err(5); // another user's pipe under this name
+        }
+        // SAFETY: the mode value lives during the call; pid names the instance process.
+        unsafe {
+            SetNamedPipeHandleState(pipe, &PIPE_NOWAIT, core::ptr::null(), core::ptr::null());
+            AllowSetForegroundWindow(pid);
+        }
+        return Ok(conn);
+    }
+    Err(231)
+}
+
+impl InstConn {
+    /// None: nothing yet; Some(0): the other side closed
+    pub(crate) fn read(&mut self, bytes: &mut [u8]) -> Result<Option<usize>, i32> {
+        Stream { pipe: self.pipe }.read_keep(bytes)
+    }
+
+    /// None: the pipe is full
+    pub(crate) fn write(&mut self, bytes: &[u8]) -> Result<Option<usize>, i32> {
+        Stream { pipe: self.pipe }.write_keep(bytes)
+    }
+}
+
+impl Drop for InstConn {
+    fn drop(&mut self) {
+        if self.server {
+            // SAFETY: the server's pipe: wait until the client read the answer, then make the
+            // pipe ready for the next client.
+            unsafe {
+                FlushFileBuffers(self.pipe);
+                DisconnectNamedPipe(self.pipe);
+                SetNamedPipeHandleState(self.pipe, &PIPE_WAIT, core::ptr::null(), core::ptr::null());
+            }
+        } else {
+            close(self.pipe);
+        }
+    }
+}
+
+impl Stream {
+    // read / write on a borrowed handle: the Stream must not close it
+    fn read_keep(self, bytes: &mut [u8]) -> Result<Option<usize>, i32> {
+        let mut s = core::mem::ManuallyDrop::new(self);
+        s.read(bytes)
+    }
+
+    fn write_keep(self, bytes: &[u8]) -> Result<Option<usize>, i32> {
+        let mut s = core::mem::ManuallyDrop::new(self);
+        s.write(bytes)
+    }
 }

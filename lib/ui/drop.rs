@@ -1,5 +1,10 @@
 // drop -- (K1) dropped files for apps, the clipboard format probe, the headless image
-// clipboard                                                           [src/ui/ui_drop.s]
+// clipboard; the command lines of later starts (AF_SINGLE_INSTANCE)    [src/ui/ui_drop.s]
+//
+//   open_take() -> Vec<Request>     (UIC_OPEN, arg = their count) the working folder and
+//                                   arguments of every later start of the app since the last
+//                                   call; Request::paths() gives the files, which the app may
+//                                   read and write (fs.user); the main window comes forward
 //
 //   drop_count() -> n               files of the last drop (UIC_DROP, arg = window id)
 //   drop_path(i) -> Option<&str>    path i; valid until the next drop arrives
@@ -44,6 +49,31 @@ impl Ui {
     /// ui_drop_path(i): path i of the last drop (None when out of range)
     pub fn drop_path(&self, i: u32) -> Option<&str> {
         self.dr.list.get(i as usize).map(|s| s.as_str())
+    }
+
+    /// AF_SINGLE_INSTANCE: the command lines of later starts that arrived (UIC_OPEN), oldest
+    /// first; each call takes them
+    pub fn open_take(&mut self) -> Vec<plat::instance::Request> {
+        core::mem::take(&mut self.open_reqs)
+    }
+
+    /// E_WAKE: requests of later starts -> their files granted (fs.user), the main window
+    /// brought forward, App::command(UIC_OPEN, pending requests)
+    pub(crate) fn open_poll(&mut self) {
+        let reqs = plat::instance::take();
+        if reqs.is_empty() {
+            return;
+        }
+        for p in reqs.iter().flat_map(|r| r.paths()).filter(|p| !p.contains("://")) {
+            super::perm::grant_user(&p);
+        }
+        if plat::win_state(0) & plat::WST_MINIMIZED != 0 {
+            plat::win_cmd(0, plat::WCMD_RESTORE);
+        }
+        plat::win_activate(0);
+        self.open_reqs.extend(reqs);
+        let n = self.open_reqs.len() as u32;
+        self.cmd_run(UIC_OPEN, n);
     }
 
     /// ui_drop_list: every path of the last drop

@@ -19,6 +19,7 @@
 
 extern crate alloc;
 
+mod assoc;
 mod install;
 mod payload;
 mod shell;
@@ -128,6 +129,11 @@ pub(crate) struct Inst {
     pub(crate) lnk_start: String,
     /// uninstall: install.ini files=
     pub(crate) files: String,
+    /// the manifest's file types and URL schemes (PACKAGE filetypes= / schemes=)
+    pub(crate) types: String,
+    pub(crate) schemes: String,
+    /// uninstall: install.ini assoc= (what the file types and schemes added)
+    pub(crate) assoc: String,
 }
 
 /// fmt_buf(g_buf, 256, f, a): f with its %s replaced by a, cut to 255 bytes

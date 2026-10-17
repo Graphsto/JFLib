@@ -10,3 +10,6 @@ deb_name=PaintCraft
 default_win=winui
 default_linux=kde
 styles=winui classic macos kde
+# "Open with" for these types (no "own": PaintCraft does not take them over); a second start
+# opens its files as tabs of the running window (AF_SINGLE_INSTANCE)
+filetypes=png|image/png|PNG-Bild; jpg,jpeg,jpe,jfif|image/jpeg|JPEG-Bild; bmp,dib|image/bmp|Bitmap; gif|image/gif|GIF-Bild; webp|image/webp|WebP-Bild; tif,tiff|image/tiff|TIFF-Bild; tga|image/x-tga|TGA-Bild; dds|image/vnd-ms.dds|DDS-Textur; avif|image/avif|AVIF-Bild; heic,heif|image/heif|HEIF-Bild; jxl|image/jxl|JPEG-XL-Bild; jxr,wdp,hdp|image/jxr|JPEG-XR-Bild; pdn|image/x-paint.net|Paint.NET-Bild; psd|image/vnd.adobe.photoshop|Photoshop-Bild

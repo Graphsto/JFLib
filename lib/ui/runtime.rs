@@ -355,6 +355,7 @@ impl Ui {
             need_render: false,
             quit: false,
             log_events: false,
+            open_reqs: Vec::new(),
             autoclose_ms: 0,
             accent_raw: 0,
             settle_warned: false,
@@ -492,6 +493,7 @@ impl Ui {
                 plat::E_PAINT => continue,
                 plat::E_WAKE => {
                     self.cmd_run(UIC_WAKE, 0); // plat::wake() from another thread
+                    self.open_poll();
                     self.need = true;
                     continue;
                 }
@@ -922,6 +924,10 @@ pub fn run(desc: &AppDesc, app: &mut dyn App, style: &'static dyn Style) -> i32 
 /// redraw inside the Win32 modal size / move loop goes through plat::wait_refresh (the
 /// Linux backends have no modal loop)
 fn window_main(ui: &mut Ui, app: &mut dyn App, w: i32, h: i32) -> i32 {
+    // AF_SINGLE_INSTANCE: a running instance takes this start's command line (UIC_OPEN there)
+    if ui.desc.flags & AF_SINGLE_INSTANCE != 0 && plat::instance::claim(&plat::vfs::app_id()) == plat::instance::Claim::Forwarded {
+        return 0;
+    }
     plat::win_hit_hook(Some(super::win::uiw_hit_pw)); // non-client hit tests ask the UI
     plat::set_min_size(ui.desc.min_w as i32, ui.desc.min_h as i32);
     if !plat::window_create(ui.desc.title, w, h, ui.desc.flags) {

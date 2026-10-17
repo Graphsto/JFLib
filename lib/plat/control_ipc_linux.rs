@@ -222,3 +222,137 @@ fn unlink(path: &str) {
         syscall6(87, path.as_ptr() as usize, 0, 0, 0, 0, 0);
     }
 }
+
+// ---------------------------------------------------------------- the app's single instance
+// (instance.rs): the abstract socket "jfgui-instance-<uid>-<app>" (no file, gone with the
+// process); the process that binds it first is the app's running instance.  Both sides check
+// the other's uid with SO_PEERCRED: a socket of another user under this name is refused.
+
+/// the listening side of the instance socket (blocking accept)
+pub(crate) struct InstServer {
+    fd: i32,
+}
+
+/// one exchange over the instance socket (nonblocking reads and writes)
+pub(crate) struct InstConn {
+    fd: i32,
+}
+
+fn euid() -> u32 {
+    // SAFETY: geteuid has no arguments.
+    unsafe { syscall6(107, 0, 0, 0, 0, 0, 0) as u32 }
+}
+
+// sockaddr_un with an abstract name (sun_path[0] = 0) and its length
+fn inst_addr(app: &str) -> Result<([u8; 110], usize), i32> {
+    let name = format!("jfgui-instance-{}-{app}", euid());
+    if name.len() > 100 {
+        return Err(36);
+    }
+    let mut address = [0u8; 110];
+    address[..2].copy_from_slice(&1u16.to_ne_bytes());
+    address[3..3 + name.len()].copy_from_slice(name.as_bytes());
+    Ok((address, 3 + name.len()))
+}
+
+// the uid of the process at the other end of fd
+fn peer_uid(fd: i32) -> Option<u32> {
+    let mut credentials = [0u32; 3];
+    let mut length = 12u32;
+    // SAFETY: SO_PEERCRED writes at most the supplied 12-byte ucred record and length.
+    let status = unsafe { syscall6(55, fd as usize, 1, 17, credentials.as_mut_ptr() as usize, &mut length as *mut u32 as usize, 0) };
+    (status == 0 && length == 12).then_some(credentials[1])
+}
+
+/// bind the instance socket -> None when another process already has it
+pub(crate) fn inst_listen(app: &str) -> Result<Option<InstServer>, i32> {
+    let (address, length) = inst_addr(app)?;
+    // SAFETY: a blocking, close-on-exec Unix stream socket.
+    let fd = unsafe { syscall6(41, 1, 1 | 0x80000, 0, 0, 0, 0) };
+    if fd < 0 {
+        return Err((-fd) as i32);
+    }
+    let fd = fd as i32;
+    // SAFETY: the address record and its length are valid for the call.
+    let bound = unsafe { syscall6(49, fd as usize, address.as_ptr() as usize, length, 0, 0, 0) };
+    if bound == -98 {
+        close(fd); // EADDRINUSE: the instance runs
+        return Ok(None);
+    }
+    // SAFETY: listen on the bound socket.
+    let status = if bound < 0 { bound } else { unsafe { syscall6(50, fd as usize, 4, 0, 0, 0, 0) } };
+    if status < 0 {
+        close(fd);
+        return Err((-status) as i32);
+    }
+    Ok(Some(InstServer { fd }))
+}
+
+impl InstServer {
+    /// wait for the next starting process of the same user (blocks)
+    pub(crate) fn accept(&self) -> Result<InstConn, i32> {
+        loop {
+            // SAFETY: accept4 blocks; the new socket is nonblocking and close-on-exec.
+            let fd = unsafe { syscall6(288, self.fd as usize, 0, 0, 0x80000 | 0x800, 0, 0) };
+            if fd == -4 {
+                continue; // EINTR
+            }
+            if fd < 0 {
+                return Err((-fd) as i32);
+            }
+            let fd = fd as i32;
+            if peer_uid(fd) == Some(euid()) {
+                return Ok(InstConn { fd });
+            }
+            close(fd);
+        }
+    }
+}
+
+impl Drop for InstServer {
+    fn drop(&mut self) {
+        close(self.fd);
+    }
+}
+
+/// connect to the running instance (it must run as the same user)
+pub(crate) fn inst_connect(app: &str) -> Result<InstConn, i32> {
+    let (address, length) = inst_addr(app)?;
+    // SAFETY: a blocking, close-on-exec Unix stream socket.
+    let fd = unsafe { syscall6(41, 1, 1 | 0x80000, 0, 0, 0, 0) };
+    if fd < 0 {
+        return Err((-fd) as i32);
+    }
+    let conn = InstConn { fd: fd as i32 };
+    // SAFETY: the address record and its length are valid for the call.
+    let status = unsafe { syscall6(42, fd as usize, address.as_ptr() as usize, length, 0, 0, 0) };
+    if status < 0 {
+        return Err((-status) as i32);
+    }
+    if peer_uid(conn.fd) != Some(euid()) {
+        return Err(13);
+    }
+    // SAFETY: fcntl(F_SETFL, O_NONBLOCK) on the own socket.
+    unsafe { syscall6(72, fd as usize, 4, 0x800, 0, 0, 0) };
+    Ok(conn)
+}
+
+impl InstConn {
+    /// None: nothing yet; Some(0): the other side closed
+    pub(crate) fn read(&mut self, bytes: &mut [u8]) -> Result<Option<usize>, i32> {
+        // SAFETY: read receives the exclusive writable range of the caller's slice.
+        result(unsafe { syscall6(0, self.fd as usize, bytes.as_mut_ptr() as usize, bytes.len(), 0, 0, 0) })
+    }
+
+    /// None: the socket buffer is full (never SIGPIPE)
+    pub(crate) fn write(&mut self, bytes: &[u8]) -> Result<Option<usize>, i32> {
+        // SAFETY: sendto reads a valid slice on a connected socket, MSG_NOSIGNAL.
+        result(unsafe { syscall6(44, self.fd as usize, bytes.as_ptr() as usize, bytes.len(), 0x4000, 0, 0) })
+    }
+}
+
+impl Drop for InstConn {
+    fn drop(&mut self) {
+        close(self.fd);
+    }
+}

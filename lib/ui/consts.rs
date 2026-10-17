@@ -158,12 +158,14 @@ pub const UIC_DROP: u32 = 0x7FFF_0007; // arg = window id: files dropped (drop_*
 pub const UIC_JOB: u32 = 0x7FFF_0008; // arg = job id finished
 pub const UIC_WAKE: u32 = 0x7FFF_0009; // plat::wake() from another thread
 pub const UIC_EXIT: u32 = 0x7FFF_000A; // the window loop ends (only after a real window ran)
+pub const UIC_OPEN: u32 = 0x7FFF_000B; // arg = requests: later starts of the app (AF_SINGLE_INSTANCE, open_requests)
 
 // ------------------------------------------------------------------ app flags (AppDesc)
 pub const AF_CUSTOM_TITLEBAR: u32 = 1;
 pub const AF_RESIZABLE: u32 = 2;
 pub const AF_DARK: u32 = 4; // force dark theme
 pub const AF_LIGHT: u32 = 8; // force light theme
+pub const AF_SINGLE_INSTANCE: u32 = 16; // one window per user: later starts hand their command line over (UIC_OPEN)
 
 // ------------------------------------------------------------------ theme tokens (color)
 // byte offsets as in ASMLIB; index = token / 4
